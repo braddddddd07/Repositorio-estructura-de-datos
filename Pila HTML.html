@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador Gráfico de Pila (Stack)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    .code-font {
+      font-family: 'Fira Code', monospace;
+    }
+    /* Estilos de animación para los bloques de la pila */
+    .stack-item {
+      transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .stack-item-enter {
+      opacity: 0;
+      transform: translateY(-40px) scale(0.9);
+    }
+    .stack-item-active {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    .stack-item-peek {
+      animation: pulseHighlight 1s infinite alternate;
+    }
+    @keyframes pulseHighlight {
+      0% { ring-color: rgba(234, 179, 8, 0.5); transform: scale(1); }
+      100% { ring-color: rgba(234, 179, 8, 1); transform: scale(1.02); }
+    }
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #1f2937;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #4b5563;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #6b7280;
+    }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 h-screen overflow-hidden flex flex-col justify-between">
+
+  <!-- Encabezado -->
+  <header class="bg-slate-800/80 backdrop-blur border-b border-slate-700/60 shrink-0">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-4">
+      <div class="flex items-center space-x-3">
+        <div class="bg-indigo-600 p-2 rounded-xl shadow-lg shadow-indigo-500/30 text-white">
+          <i class="fa-solid font-bold fa-layer-group text-lg"></i>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">
+            Simulador de Pila (Stack)
+          </h1>
+          <p class="text-[11px] text-slate-400">Unidad 3 - Estructuras Lineales (LIFO)</p>
+        </div>
+      </div>
+      
+      <!-- Selector de Pestañas (Simulador vs Código Python) -->
+      <div class="flex bg-slate-900/80 p-1 rounded-xl border border-slate-700/80">
+        <button id="tabSimBtn" onclick="switchTab('sim')" class="px-3.5 py-1 rounded-lg text-xs font-medium transition-all bg-indigo-600 text-white shadow">
+          <i class="fa-solid fa-desktop mr-1.5"></i> Simulador Visual
+        </button>
+        <button id="tabCodeBtn" onclick="switchTab('code')" class="px-3.5 py-1 rounded-lg text-xs font-medium transition-all text-slate-400 hover:text-white">
+          <i class="fa-brands fa-python mr-1.5"></i> Código Python Tkinter
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Contenido Principal Centrado e Invariable en Altura -->
+  <main class="max-w-7xl mx-auto w-full px-4 py-3 flex-1 flex flex-col justify-center overflow-hidden">
+    
+    <!-- VISTA 1: SIMULADOR INTERACTIVO -->
+    <div id="simView" class="grid grid-cols-1 lg:grid-cols-12 gap-5 h-full max-h-[580px] items-stretch">
+      
+      <!-- Panel Izquierdo: Controles y Estado -->
+      <div class="lg:col-span-4 flex flex-col gap-4 h-full justify-between">
+        
+        <!-- Panel de Acciones/Controles -->
+        <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-4 shadow-xl backdrop-blur flex-1 flex flex-col justify-between">
+          <h2 class="text-base font-semibold text-slate-200 flex items-center">
+            <i class="fa-solid fa-sliders text-indigo-400 mr-2"></i> Operaciones
+          </h2>
+
+          <div class="space-y-3">
+            <!-- Input de valor -->
+            <div>
+              <label class="block text-xs font-medium text-slate-400 mb-1">Dato a apilar (Push)</label>
+              <div class="flex gap-2">
+                <input type="text" id="elementInput" placeholder="Ej: 42, A, Texto..." 
+                       class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-indigo-500 text-slate-100 placeholder-slate-500 transition"
+                       onkeydown="if(event.key === 'Enter') handlePush()">
+                <button onclick="handlePush()" class="bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white px-3.5 py-1.5 rounded-xl text-xs font-medium transition flex items-center shadow-md shadow-indigo-600/20">
+                  <i class="fa-solid fa-plus mr-1"></i> Push
+                </button>
+              </div>
+            </div>
+
+            <!-- Botones de Operaciones -->
+            <div class="grid grid-cols-2 gap-2">
+              <button onclick="handlePop()" class="bg-rose-600/80 hover:bg-rose-600 active:scale-95 text-white px-2.5 py-2 rounded-xl text-xs font-medium transition flex items-center justify-center border border-rose-500/30">
+                <i class="fa-solid fa-arrow-up-from-bracket mr-1.5"></i> Pop (Desapilar)
+              </button>
+              <button onclick="handlePeek()" class="bg-amber-600/80 hover:bg-amber-600 active:scale-95 text-white px-2.5 py-2 rounded-xl text-xs font-medium transition flex items-center justify-center border border-amber-500/30">
+                <i class="fa-solid fa-eye mr-1.5"></i> Peek / Top
+              </button>
+            </div>
+
+            <button onclick="handleClear()" class="w-full bg-slate-700/60 hover:bg-slate-700 active:scale-95 text-slate-300 hover:text-white px-2.5 py-1.5 rounded-xl text-xs font-medium transition flex items-center justify-center border border-slate-600/50">
+              <i class="fa-solid fa-trash-can mr-1.5"></i> Vaciar Pila (Clear)
+            </button>
+
+            <hr class="border-slate-700/60">
+
+            <!-- Control de Capacidad -->
+            <div>
+              <div class="flex justify-between items-center mb-1">
+                <label class="text-xs font-medium text-slate-400">Capacidad Máxima</label>
+                <span id="capacityVal" class="text-xs font-bold text-indigo-400 bg-indigo-950/80 px-2 py-0.5 rounded border border-indigo-800/50">8</span>
+              </div>
+              <input type="range" id="capacityRange" min="3" max="12" value="8" step="1" 
+                     class="w-full accent-indigo-500 bg-slate-900 rounded-lg h-1.5 cursor-pointer"
+                     oninput="updateCapacity(this.value)">
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel de Estado / Info -->
+        <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-4 shadow-xl shrink-0 flex flex-col gap-2">
+          <h2 class="text-base font-semibold text-slate-200 flex items-center">
+            <i class="fa-solid fa-chart-pie text-cyan-400 mr-2"></i> Estado Actual
+          </h2>
+          <div class="grid grid-cols-2 gap-2 text-center">
+            <div class="bg-slate-900/80 border border-slate-700/50 p-2 rounded-xl">
+              <span class="block text-[11px] text-slate-400">Tamaño</span>
+              <span id="statSize" class="text-lg font-bold text-white">0</span>
+            </div>
+            <div class="bg-slate-900/80 border border-slate-700/50 p-2 rounded-xl">
+              <span class="block text-[11px] text-slate-400">Estado</span>
+              <span id="statStatus" class="text-[10px] font-bold text-emerald-400 px-1.5 py-0.5 rounded bg-emerald-950/50 border border-emerald-800/40 inline-block">Vacía</span>
+            </div>
+          </div>
+          <div class="bg-slate-900/80 border border-slate-700/50 p-2 rounded-xl flex justify-between items-center px-3">
+            <span class="text-xs text-slate-400">Tope (Top):</span>
+            <span id="statTop" class="text-xs font-bold text-amber-400 code-font truncate max-w-[140px]">None</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Panel Central: Visualización Gráfica de la Pila (Contenedor Fijo) -->
+      <div class="lg:col-span-5 bg-slate-800/40 border border-slate-700/60 rounded-2xl p-4 shadow-xl flex flex-col items-center justify-between h-full overflow-hidden">
+        
+        <div class="w-full flex justify-between items-center text-xs font-semibold text-slate-400 uppercase tracking-wider">
+          <span><i class="fa-solid fa-arrow-down text-indigo-400 mr-1"></i> Entrada / Salida (LIFO)</span>
+          <span id="stackCounter" class="bg-slate-800 px-2 py-0.5 rounded-full border border-slate-700 text-[11px]">0 / 8</span>
+        </div>
+
+        <!-- Contenedor Visual Fijo de la Pila -->
+        <div class="relative w-full max-w-xs flex-1 flex flex-col justify-end items-center my-3 overflow-hidden">
+          
+          <!-- Indicador de TOPE (Top Pointer) -->
+          <div id="topPointer" class="absolute -left-10 transition-all duration-300 flex items-center gap-1 text-amber-400 opacity-0 pointer-events-none z-10" style="bottom: 0px;">
+            <span class="text-[10px] font-bold uppercase tracking-wider">TOP</span>
+            <i class="fa-solid fa-hand-point-right text-sm animate-pulse"></i>
+          </div>
+
+          <!-- Estructura Física U-Shape con dimensiones estrictamente fijas -->
+          <div id="stackContainer" class="w-full h-[320px] max-h-[320px] border-b-4 border-x-4 border-indigo-500/80 bg-slate-900/80 rounded-b-2xl p-2.5 flex flex-col-reverse gap-1.5 shadow-2xl relative overflow-y-auto">
+            <!-- Bloques generados dinámicamente aquí -->
+          </div>
+        </div>
+
+        <div class="w-full text-center text-[11px] text-slate-500">
+          <i class="fa-solid fa-circle-info mr-1"></i> Estructura LIFO fija. Los elementos entran y salen por el extremo superior.
+        </div>
+      </div>
+
+      <!-- Panel Derecho: Historial y Registro de Movimientos -->
+      <div class="lg:col-span-3 bg-slate-800/60 border border-slate-700/60 rounded-2xl p-4 shadow-xl flex flex-col h-full overflow-hidden">
+        <div class="flex justify-between items-center mb-2 shrink-0">
+          <h2 class="text-sm font-semibold text-slate-200 flex items-center">
+            <i class="fa-solid fa-list-check text-indigo-400 mr-1.5"></i> Movimientos
+          </h2>
+          <button onclick="clearLogs()" class="text-xs text-slate-400 hover:text-white transition" title="Limpiar historial">
+            <i class="fa-solid fa-broom"></i>
+          </button>
+        </div>
+
+        <!-- Lista de Eventos / Logs con Scroll Interno Fijo -->
+        <div id="logContainer" class="flex-1 overflow-y-auto space-y-1.5 pr-1 code-font text-xs">
+          <div class="text-slate-500 text-center py-8 italic text-xs">Esperando acciones...</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- VISTA 2: CÓDIGO FUENTE DE PYTHON (TKINTER) -->
+    <div id="codeView" class="hidden flex-1 flex-col h-full overflow-hidden">
+      <div class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-4 shadow-xl flex flex-col h-full overflow-hidden">
+        <div class="flex flex-wrap justify-between items-center gap-4 mb-3 shrink-0">
+          <div>
+            <h2 class="text-base font-bold text-white flex items-center gap-2">
+              <i class="fa-brands fa-python text-amber-400 text-lg"></i> Código Fuente en Python (Tkinter GUI)
+            </h2>
+            <p class="text-[11px] text-slate-400 mt-0.5">
+              Copia este código en tu entorno local (VS Code, PyCharm, IDLE) para ejecutar la app.
+            </p>
+          </div>
+          <button onclick="copyPythonCode()" id="copyBtn" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-xl text-xs font-medium transition flex items-center shadow-lg shadow-emerald-600/20">
+            <i class="fa-regular fa-copy mr-1.5"></i> Copiar Código Python
+          </button>
+        </div>
+
+        <div class="relative rounded-xl overflow-hidden border border-slate-700/80 bg-slate-950 flex-1">
+          <pre class="p-3 overflow-auto text-slate-200 text-xs code-font h-full leading-relaxed"><code id="pythonCodeText">import tkinter as tk
+from tkinter import messagebox, ttk
+
+class PilaGUI:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Simulador Gráfico de Pila (Stack) - Estructuras Lineales")
+        self.root.geometry("850x600")
+        self.root.configure(bg="#0f172a") # Slate-900
+
+        # Propiedades de la Pila
+        self.capacidad_maxima = 8
+        self.pila = []
+
+        self.crear_interfaz()
+
+    def crear_interfaz(self):
+        # Título Principal
+        titulo = tk.Label(
+            self.root, 
+            text="Estructura de Datos: PILA (LIFO)", 
+            font=("Helvetica", 16, "bold"), 
+            bg="#0f172a", 
+            fg="#f8fafc"
+        )
+        titulo.pack(pady=10)
+
+        # Contenedor Principal (2 Columnas)
+        main_frame = tk.Frame(self.root, bg="#0f172a")
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=5)
+
+        # --- COLUMNA IZQUIERDA: Controles y Registro ---
+        left_frame = tk.Frame(main_frame, bg="#1e293b", padx=15, pady=15, bd=1, relief=tk.SOLID)
+        left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 10))
+
+        # Entrada de datos
+        tk.Label(left_frame, text="Valor a Apilar (Push):", font=("Helvetica", 10, "bold"), bg="#1e293b", fg="#cbd5e1").pack(anchor="w")
+        self.entry_val = tk.Entry(left_frame, font=("Helvetica", 11), bg="#0f172a", fg="#ffffff", insertbackground="white")
+        self.entry_val.pack(fill=tk.X, pady=(2, 10))
+        self.entry_val.bind("<Return>", lambda e: self.push())
+
+        # Botones de Operación
+        btn_push = tk.Button(left_frame, text="PUSH (Apilar)", bg="#4f46e5", fg="white", font=("Helvetica", 10, "bold"), command=self.push, cursor="hand2")
+        btn_push.pack(fill=tk.X, pady=3)
+
+        btn_pop = tk.Button(left_frame, text="POP (Desapilar)", bg="#e11d48", fg="white", font=("Helvetica", 10, "bold"), command=self.pop, cursor="hand2")
+        btn_pop.pack(fill=tk.X, pady=3)
+
+        btn_peek = tk.Button(left_frame, text="PEEK / TOP (Ver Tope)", bg="#d97706", fg="white", font=("Helvetica", 10, "bold"), command=self.peek, cursor="hand2")
+        btn_peek.pack(fill=tk.X, pady=3)
+
+        btn_clear = tk.Button(left_frame, text="CLEAR (Vaciar Pila)", bg="#475569", fg="white", font=("Helvetica", 10), command=self.clear, cursor="hand2")
+        btn_clear.pack(fill=tk.X, pady=3)
+
+        # Registro / Log de Movimientos
+        tk.Label(left_frame, text="Historial de Movimientos:", font=("Helvetica", 10, "bold"), bg="#1e293b", fg="#cbd5e1").pack(anchor="w", pady=(15, 2))
+        
+        self.log_listbox = tk.Listbox(left_frame, font=("Consolas", 9), bg="#0f172a", fg="#38bdf8", selectbackground="#334155")
+        self.log_listbox.pack(fill=tk.BOTH, expand=True)
+
+        # --- COLUMNA DERECHA: Canvas Gráfico de la Pila ---
+        right_frame = tk.Frame(main_frame, bg="#1e293b", padx=15, pady=15, bd=1, relief=tk.SOLID)
+        right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
+
+        tk.Label(right_frame, text="Representación Gráfica de la Pila", font=("Helvetica", 11, "bold"), bg="#1e293b", fg="#f8fafc").pack(pady=(0, 10))
+
+        # Canvas para dibujar los elementos de la pila
+        self.canvas = tk.Canvas(right_frame, bg="#0f172a", highlightthickness=0)
+        self.canvas.pack(fill=tk.BOTH, expand=True)
+
+        self.log_movimiento("SISTEMA: Pila inicializada correctamente (Capacidad: 8)")
+        self.dibujar_pila()
+
+    def log_movimiento(self, texto):
+        """Agrega un mensaje con formato al historial de movimientos"""
+        self.log_listbox.insert(tk.END, f"> {texto}")
+        self.log_listbox.see(tk.END)
+
+    def push(self):
+        valor = self.entry_val.get().strip()
+        if not valor:
+            messagebox.showwarning("Atención", "Por favor ingresa un valor válido.")
+            return
+
+        if len(self.pila) >= self.capacidad_maxima:
+            self.log_movimiento(f"ERROR: Overflow / Desbordamiento al intentar añadir '{valor}'")
+            messagebox.showerror("Pila Llena", "¡Error de Desbordamiento (Overflow)! La pila ha alcanzado su capacidad máxima.")
+            return
+
+        self.pila.append(valor)
+        self.entry_val.delete(0, tk.END)
+        self.log_movimiento(f"PUSH: Se agregó el elemento '{valor}' en el tope (Pos: {len(self.pila)-1})")
+        self.dibujar_pila()
+
+    def pop(self):
+        if not self.pila:
+            self.log_movimiento("ERROR: Underflow / Pila vacía al intentar hacer POP")
+            messagebox.showwarning("Pila Vacía", "¡Error de Subdesbordamiento (Underflow)! No hay elementos para desapilar.")
+            return
+
+        elemento_removido = self.pila.pop()
+        self.log_movimiento(f"POP: Se retiró el elemento '{elemento_removido}'")
+        self.dibujar_pila()
+
+    def peek(self):
+        if not self.pila:
+            self.log_movimiento("PEEK: Intento de consulta en Pila Vacía")
+            messagebox.showinfo("Peek / Top", "La pila se encuentra actualmente VACÍA.")
+            return
+
+        tope = self.pila[-1]
+        self.log_movimiento(f"PEEK: El elemento en el tope actual es '{tope}'")
+        messagebox.showinfo("Peek / Top", f"Elemento en el tope superior: {tope}")
+
+    def clear(self):
+        if not self.pila:
+            return
+        self.pila.clear()
+        self.log_movimiento("CLEAR: Se ha vaciado la pila por completo.")
+        self.dibujar_pila()
+
+    def dibujar_pila(self):
+        """Redibuja dinámicamente los elementos dentro del canvas"""
+        self.canvas.delete("all")
+        width = self.canvas.winfo_width()
+        height = self.canvas.winfo_height()
+
+        if width <= 1: # Ajuste inicial si aún no se renderiza completamente
+            width = 350
+            height = 380
+
+        # Dibujar estructura contenedora (U shape)
+        box_width = 180
+        x1 = (width - box_width) / 2
+        x2 = x1 + box_width
+        y_bottom = height - 30
+        box_height = 300
+        y_top = y_bottom - box_height
+
+        # Contorno de la pila
+        self.canvas.create_line(x1, y_top, x1, y_bottom, fill="#6366f1", width=4)
+        self.canvas.create_line(x1, y_bottom, x2, y_bottom, fill="#6366f1", width=4)
+        self.canvas.create_line(x2, y_bottom, x2, y_top, fill="#6366f1", width=4)
+
+        # Dibujar elementos existentes
+        block_height = box_height / self.capacidad_maxima
+        padding = 4
+
+        for index, item in enumerate(self.pila):
+            item_y2 = y_bottom - (index * block_height) - padding
+            item_y1 = item_y2 - block_height + (padding * 2)
+
+            # Resaltar si es el elemento TOP
+            es_top = (index == len(self.pila) - 1)
+            color_fondo = "#f59e0b" if es_top else "#3b82f6"
+
+            # Dibujar el bloque
+            self.canvas.create_rectangle(
+                x1 + padding + 4, item_y1, 
+                x2 - padding - 4, item_y2, 
+                fill=color_fondo, outline="#ffffff", width=1.5
+            )
+            
+            # Texto dentro del bloque
+            self.canvas.create_text(
+                (x1 + x2) / 2, (item_y1 + item_y2) / 2, 
+                text=str(item), fill="white", font=("Helvetica", 11, "bold")
+            )
+
+            # Etiqueta de indicador "TOP ->"
+            if es_top:
+                self.canvas.create_text(
+                    x1 - 35, (item_y1 + item_y2) / 2, 
+                    text="TOP ➔", fill="#f59e0b", font=("Helvetica", 10, "bold")
+                )
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = PilaGUI(root)
+    root.mainloop()
+</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Script Lógico de la Aplicación Web -->
+  <script>
+    // Estado de la Pila (Stack)
+    let stack = [];
+    let maxCapacity = 8;
+    let peekActiveIndex = -1;
+
+    // Elementos DOM
+    const stackContainer = document.getElementById('stackContainer');
+    const elementInput = document.getElementById('elementInput');
+    const logContainer = document.getElementById('logContainer');
+    const statSize = document.getElementById('statSize');
+    const statStatus = document.getElementById('statStatus');
+    const statTop = document.getElementById('statTop');
+    const stackCounter = document.getElementById('stackCounter');
+    const topPointer = document.getElementById('topPointer');
+    const capacityVal = document.getElementById('capacityVal');
+
+    // Inicializar
+    window.onload = () => {
+      addLog("INIT", "Pila inicializada con capacidad para " + maxCapacity + " elementos.", "info");
+      renderStack();
+    };
+
+    // Cambiar entre Pestaña Visual y Código
+    function switchTab(tab) {
+      const simView = document.getElementById('simView');
+      const codeView = document.getElementById('codeView');
+      const tabSimBtn = document.getElementById('tabSimBtn');
+      const tabCodeBtn = document.getElementById('tabCodeBtn');
+
+      if (tab === 'sim') {
+        simView.classList.remove('hidden');
+        codeView.classList.add('hidden');
+        tabSimBtn.className = "px-3.5 py-1 rounded-lg text-xs font-medium transition-all bg-indigo-600 text-white shadow";
+        tabCodeBtn.className = "px-3.5 py-1 rounded-lg text-xs font-medium transition-all text-slate-400 hover:text-white";
+      } else {
+        simView.classList.add('hidden');
+        codeView.classList.remove('hidden');
+        codeView.classList.add('flex');
+        tabSimBtn.className = "px-3.5 py-1 rounded-lg text-xs font-medium transition-all text-slate-400 hover:text-white";
+        tabCodeBtn.className = "px-3.5 py-1 rounded-lg text-xs font-medium transition-all bg-indigo-600 text-white shadow";
+      }
+    }
+
+    // Actualizar Capacidad
+    function updateCapacity(newCap) {
+      const val = parseInt(newCap);
+      if (val < stack.length) {
+        addLog("ERROR", `No se puede reducir la capacidad a ${val}. Hay ${stack.length} elementos en la pila.`, "error");
+        document.getElementById('capacityRange').value = maxCapacity;
+        return;
+      }
+      maxCapacity = val;
+      capacityVal.textContent = maxCapacity;
+      addLog("CONFIG", `Capacidad máxima cambiada a ${maxCapacity} elementos.`, "info");
+      renderStack();
+    }
+
+    // Operación PUSH
+    function handlePush() {
+      peekActiveIndex = -1;
+      const val = elementInput.value.trim();
+      
+      if (!val) {
+        addLog("WARN", "Ingresa un valor para apilar.", "warning");
+        elementInput.focus();
+        return;
+      }
+
+      if (stack.length >= maxCapacity) {
+        addLog("OVERFLOW", `Error: Pila Llena. No se pudo ingresar '${val}'.`, "error");
+        return;
+      }
+
+      stack.push(val);
+      elementInput.value = '';
+      elementInput.focus();
+
+      addLog("PUSH", `Se agregó el elemento '${val}' al tope de la pila.`, "push");
+      renderStack(true); // Animar último elemento
+    }
+
+    // Operación POP
+    function handlePop() {
+      peekActiveIndex = -1;
+      if (stack.length === 0) {
+        addLog("UNDERFLOW", "Error: Intento de POP en una pila vacía.", "error");
+        return;
+      }
+
+      const poppedItem = stack.pop();
+      addLog("POP", `Se retiró el elemento '${poppedItem}' del tope.`, "pop");
+      renderStack();
+    }
+
+    // Operación PEEK / TOP
+    function handlePeek() {
+      if (stack.length === 0) {
+        addLog("PEEK", "La pila está actualmente VACÍA (Sin elementos).", "warning");
+        return;
+      }
+
+      peekActiveIndex = stack.length - 1;
+      const topVal = stack[stack.length - 1];
+      addLog("PEEK", `El elemento en el tope actual es '${topVal}'.`, "peek");
+      renderStack();
+    }
+
+    // Operación CLEAR
+    function handleClear() {
+      peekActiveIndex = -1;
+      if (stack.length === 0) return;
+
+      stack = [];
+      addLog("CLEAR", "Se han eliminado todos los elementos de la pila.", "clear");
+      renderStack();
+    }
+
+    // Renderizar Elementos Gráficos
+    function renderStack(isNewPush = false) {
+      stackContainer.innerHTML = '';
+
+      stack.forEach((item, index) => {
+        const isTop = (index === stack.length - 1);
+        const isPeeked = (index === peekActiveIndex);
+
+        const itemEl = document.createElement('div');
+        itemEl.className = `stack-item w-full py-2 px-3 rounded-xl flex justify-between items-center font-bold text-xs shadow-md shrink-0 transition-all ${
+          isPeeked 
+            ? 'bg-amber-500 text-slate-900 ring-4 ring-amber-300/80 stack-item-peek' 
+            : isTop 
+              ? 'bg-indigo-500 text-white ring-2 ring-indigo-300' 
+              : 'bg-slate-700/80 text-slate-200 border border-slate-600'
+        }`;
+
+        if (isNewPush && isTop) {
+          itemEl.classList.add('stack-item-enter');
+          setTimeout(() => {
+            itemEl.classList.add('stack-item-active');
+          }, 20);
+        }
+
+        itemEl.innerHTML = `
+          <span class="truncate code-font">${escapeHtml(item)}</span>
+          <span class="text-[9px] opacity-75 bg-black/20 px-1.5 py-0.5 rounded font-mono">
+            Index: ${index}
+          </span>
+        `;
+
+        stackContainer.appendChild(itemEl);
+      });
+
+      // Asegurar que el scroll del contenedor visual siempre acompañe al tope si la pila sobrepasa el área vista
+      stackContainer.scrollTop = 0;
+
+      // Actualizar Métricas
+      statSize.textContent = stack.length;
+      stackCounter.textContent = `${stack.length} / ${maxCapacity}`;
+
+      if (stack.length === 0) {
+        statStatus.textContent = "Vacía";
+        statStatus.className = "text-[10px] font-bold text-emerald-400 px-1.5 py-0.5 rounded bg-emerald-950/50 border border-emerald-800/40 inline-block";
+        statTop.textContent = "None";
+        topPointer.style.opacity = '0';
+      } else if (stack.length === maxCapacity) {
+        statStatus.textContent = "Llena (Full)";
+        statStatus.className = "text-[10px] font-bold text-rose-400 px-1.5 py-0.5 rounded bg-rose-950/50 border border-rose-800/40 inline-block";
+        statTop.textContent = `"${stack[stack.length - 1]}"`;
+        updateTopPointer();
+      } else {
+        statStatus.textContent = "Con Elementos";
+        statStatus.className = "text-[10px] font-bold text-sky-400 px-1.5 py-0.5 rounded bg-sky-950/50 border border-sky-800/40 inline-block";
+        statTop.textContent = `"${stack[stack.length - 1]}"`;
+        updateTopPointer();
+      }
+    }
+
+    // Posicionar puntero TOP visual dentro de los límites
+    function updateTopPointer() {
+      if (stack.length === 0) {
+        topPointer.style.opacity = '0';
+        return;
+      }
+      topPointer.style.opacity = '1';
+      const itemHeight = 36; // Altura fija de cada bloque + gap
+      const maxBottom = 280; // Límite del contenedor de la pila
+      const calculatedBottom = (stack.length - 1) * itemHeight + 14;
+      topPointer.style.bottom = `${Math.min(calculatedBottom, maxBottom)}px`;
+    }
+
+    // Agregar entrada al Historial/Logs de movimientos
+    function addLog(action, message, type) {
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+      let badgeBg = "bg-slate-700 text-slate-300";
+      if (type === "push") badgeBg = "bg-indigo-900/80 text-indigo-300 border border-indigo-700";
+      if (type === "pop") badgeBg = "bg-rose-900/80 text-rose-300 border border-rose-700";
+      if (type === "peek") badgeBg = "bg-amber-900/80 text-amber-300 border border-amber-700";
+      if (type === "clear") badgeBg = "bg-slate-800 text-slate-400 border border-slate-600";
+      if (type === "error") badgeBg = "bg-red-950 text-red-400 border border-red-800";
+      if (type === "warning") badgeBg = "bg-amber-950 text-amber-400 border border-amber-800";
+
+      const logItem = document.createElement('div');
+      logItem.className = "p-1.5 rounded-lg bg-slate-900/90 border border-slate-800 flex flex-col gap-0.5";
+      logItem.innerHTML = `
+        <div class="flex justify-between items-center text-[9px]">
+          <span class="px-1 py-0.2 rounded font-bold ${badgeBg}">${action}</span>
+          <span class="text-slate-500">${timeStr}</span>
+        </div>
+        <div class="text-slate-300 text-[11px] pl-0.5">${escapeHtml(message)}</div>
+      `;
+
+      // Si es el primer log, limpiar texto por defecto
+      if (logContainer.children.length === 1 && logContainer.children[0].classList.contains('italic')) {
+        logContainer.innerHTML = '';
+      }
+
+      logContainer.prepend(logItem);
+    }
+
+    function clearLogs() {
+      logContainer.innerHTML = '<div class="text-slate-500 text-center py-8 italic text-xs">Historial vaciado...</div>';
+    }
+
+    function copyPythonCode() {
+      const codeText = document.getElementById('pythonCodeText').innerText;
+      
+      const textarea = document.createElement('textarea');
+      textarea.value = codeText;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+
+      const copyBtn = document.getElementById('copyBtn');
+      copyBtn.innerHTML = `<i class="fa-solid fa-check mr-1.5"></i> ¡Copiado!`;
+      copyBtn.classList.replace('bg-emerald-600', 'bg-blue-600');
+
+      setTimeout(() => {
+        copyBtn.innerHTML = `<i class="fa-regular fa-copy mr-1.5"></i> Copiar Código Python`;
+        copyBtn.classList.replace('bg-blue-600', 'bg-emerald-600');
+      }, 2500);
+    }
+
+    function escapeHtml(text) {
+      return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    }
+  </script>
+</body>
+</html>
