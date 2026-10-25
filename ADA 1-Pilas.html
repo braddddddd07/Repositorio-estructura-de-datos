@@ -1,0 +1,1148 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-slate-950 text-white select-none">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Estructuras de Datos - Persona 5 UI & Ryuji Breathing Animation</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Fuentes de Google -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Teko:wght@600;700&family=Cabinet+Grotesk:wght@800;900&family=Inter:wght@400;600;800&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+    /* Estilos Globales Persona 5 / P3R Theme */
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #ba0015;
+      overflow-x: hidden;
+    }
+
+    .font-p5 {
+      font-family: 'Cabinet Grotesk', 'Teko', sans-serif;
+      text-transform: uppercase;
+      font-style: italic;
+    }
+
+    .font-code {
+      font-family: 'Fira Code', monospace;
+    }
+
+    /* Transformaciones de inclinación (Skew) Persona 5 */
+    .p5-skew-left {
+      transform: skewX(-12deg);
+    }
+    .p5-skew-left-inner {
+      transform: skewX(12deg);
+    }
+
+    .p5-skew-right {
+      transform: skewX(12deg);
+    }
+    .p5-skew-right-inner {
+      transform: skewX(-12deg);
+    }
+
+    /* Tarjetas y Paneles Estilizados con Transparencia para ver el fondo */
+    .p5-card-red {
+      background: linear-gradient(135deg, rgba(15, 2, 5, 0.82) 0%, rgba(8, 1, 3, 0.88) 100%);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 2px solid #ef4444;
+      box-shadow: 0 0 30px rgba(239, 68, 68, 0.4), inset 0 0 20px rgba(239, 68, 68, 0.18);
+      clip-path: polygon(0 0, 98% 0, 100% 18px, 100% 100%, 2% 100%, 0 calc(100% - 18px));
+    }
+
+    .p5-panel-dark {
+      background: rgba(10, 1, 3, 0.78);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+    }
+
+    /* Menú Lateral Interactivo */
+    .menu-item {
+      transition: all 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .menu-item:hover, .menu-item.active {
+      transform: skewX(-12deg) translateX(16px) scale(1.03);
+    }
+
+    .menu-item.active .menu-bg {
+      background: #dc2626 !important;
+      color: #ffffff !important;
+      box-shadow: -8px 0 0 #ffe600, 0 0 25px rgba(220, 38, 38, 0.85);
+      border-color: #ffe600 !important;
+    }
+
+    /* Efecto Halftone de P5 */
+    .halftone-bg {
+      background-image: radial-gradient(#000000 24%, transparent 24%);
+      background-size: 11px 11px;
+      opacity: 0.25;
+    }
+
+    /* Animación de Respiración de Ryuji Centrado */
+    @keyframes ryujiBreathing {
+      0%, 100% {
+        transform: translateY(0px) scale(1) rotate(0deg);
+      }
+      50% {
+        transform: translateY(-10px) scale(1.03) rotate(-0.5deg);
+      }
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% {
+        filter: drop-shadow(0 0 20px rgba(239, 68, 68, 0.6)) drop-shadow(0 0 35px rgba(250, 204, 21, 0.25));
+      }
+      50% {
+        filter: drop-shadow(0 0 35px rgba(239, 68, 68, 0.95)) drop-shadow(0 0 55px rgba(250, 204, 21, 0.65));
+      }
+    }
+
+    .animate-breathing {
+      animation: ryujiBreathing 4s ease-in-out infinite, pulseGlow 3.5s ease-in-out infinite;
+      transform-origin: center center;
+    }
+
+    /* Partículas de Chispas */
+    .spark {
+      position: absolute;
+      width: 5px;
+      height: 5px;
+      background-color: #ffe600;
+      border-radius: 50%;
+      box-shadow: 0 0 10px #ffe600, 0 0 15px #ef4444;
+      pointer-events: none;
+    }
+
+    @keyframes sparkFloat {
+      0% {
+        transform: translateY(0) translateX(0) scale(0.8);
+        opacity: 0;
+      }
+      50% {
+        opacity: 0.95;
+      }
+      100% {
+        transform: translateY(-140px) translateX(40px) scale(1.4);
+        opacity: 0;
+      }
+    }
+
+    /* Scrollbars Personalizados */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0a0003;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #ef4444;
+      border-radius: 2px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #ffe600;
+    }
+
+    .text-glow-red {
+      text-shadow: 0 0 12px rgba(239, 68, 68, 0.85), 0 0 24px rgba(239, 68, 68, 0.45);
+    }
+    .text-glow-yellow {
+      text-shadow: 0 0 12px rgba(250, 204, 21, 0.85), 0 0 24px rgba(250, 204, 21, 0.45);
+    }
+  </style>
+</head>
+<body class="h-full w-full relative flex flex-col justify-between overflow-hidden bg-[#ba0015]">
+
+  <!-- =========================================================================
+       FONDO DE PERSONA 5 CON RYUJI SAKAMOTO CENTRADO (MARGEN ALREDEDOR)
+       ========================================================================= -->
+  <div class="fixed inset-0 pointer-events-none z-0 overflow-hidden bg-gradient-to-br from-[#d90429] via-[#ba0015] to-[#200004]">
+    
+    <!-- Capa Halftone / Puntos de P5 -->
+    <div class="absolute inset-0 halftone-bg"></div>
+
+    <!-- Generador de Chispas / Partículas -->
+    <div id="sparksContainer" class="absolute inset-0 pointer-events-none"></div>
+
+    <!-- Banner Diagonal Superior Izquierdo: CODENAME SKULL -->
+    <div class="absolute -top-6 -left-12 w-[380px] md:w-[540px] h-14 bg-black border-y-4 border-red-500 transform -rotate-12 flex items-center justify-center shadow-2xl z-10 opacity-90">
+      <div class="text-white font-p5 text-xl md:text-2xl tracking-widest flex items-center gap-3">
+        <span class="text-yellow-400 font-bold">⚡</span>
+        <span class="bg-red-600 px-2 py-0.5 text-black font-black">CODENAME</span>
+        <span class="tracking-widest text-glow-yellow">SKULL</span>
+      </div>
+    </div>
+
+    <!-- Banner Diagonal Superior Derecho: PERSONA CAPTAIN KIDD -->
+    <div class="absolute top-10 -right-16 w-[400px] md:w-[560px] h-14 bg-black border-y-4 border-yellow-400 transform -rotate-12 flex items-center justify-end pr-14 shadow-2xl z-10 opacity-90">
+      <div class="text-white font-p5 text-lg md:text-xl tracking-widest flex items-center gap-3">
+        <span class="text-red-500">PERSONA</span>
+        <span class="bg-yellow-400 text-black px-2 py-0.5 font-black">CAPTAIN KIDD</span>
+      </div>
+    </div>
+
+    <!-- CONTENEDOR CENTRADO DE RYUJI (OCUPA 80-85% VIEWPORT DEJANDO MARGEN ROJO VISIBLE) -->
+    <div class="absolute inset-0 flex items-center justify-center p-4 md:p-10 pointer-events-none z-0">
+      <div class="relative w-full h-full max-w-[85vw] max-h-[82vh] flex items-center justify-center">
+        
+        <!-- Imagen Real Centrada con Efecto de Respiración y Brillo Pulsante -->
+        <img id="ryujiImage" 
+             src="ryuji.jpg" 
+             alt="Ryuji Sakamoto - Skull" 
+             class="max-w-full max-h-full object-contain filter drop-shadow-[0_20px_45px_rgba(0,0,0,0.88)] animate-breathing pointer-events-auto"
+             onerror="handleImageError(this)">
+
+        <!-- Botón Flotante para Cargar Imagen Local -->
+        <div class="absolute bottom-2 right-2 pointer-events-auto bg-black/85 border border-yellow-400 p-2 rounded text-[11px] font-code text-yellow-300 opacity-80 hover:opacity-100 transition-opacity flex items-center gap-2 shadow-xl">
+          <span>📷 ¿Usar tu imagen local?</span>
+          <button onclick="document.getElementById('imgFileInput').click()" class="bg-red-600 hover:bg-red-500 text-white px-2 py-1 rounded font-bold transition-all">
+            Cargar ryuji.jpg
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Input Oculto de Archivo de Imagen -->
+  <input type="file" id="imgFileInput" accept="image/*" class="hidden" onchange="cargarImagenUsuario(event)">
+
+  <!-- =========================================================================
+       ENCABEZADO HUD PRINCIPAL
+       ========================================================================= -->
+  <header class="relative z-20 flex justify-between items-center px-4 md:px-8 py-3 border-b-2 border-red-600/80 bg-slate-950/80 backdrop-blur-md shadow-2xl">
+    <div class="flex items-center space-x-3 md:space-x-5">
+      <div class="p5-skew-left bg-red-600 px-4 md:px-6 py-1 text-black font-p5 text-xl md:text-3xl font-black tracking-wider shadow-[0_0_20px_rgba(239,68,68,0.8)]">
+        <span class="p5-skew-left-inner inline-block">PERSONA ENGINE :: PILAS (STACKS)</span>
+      </div>
+      <div class="hidden lg:block text-xs font-code text-yellow-400 tracking-wider">
+        MÓDULO LIFO // ESTRUCTURA DE DATOS
+      </div>
+    </div>
+
+    <div class="flex items-center space-x-3">
+      <!-- Cargar Imagen Directa Button -->
+      <button onclick="document.getElementById('imgFileInput').click()" class="px-3 md:px-4 py-1.5 bg-slate-900/90 hover:bg-slate-800 border border-yellow-400 text-yellow-300 text-xs font-code flex items-center gap-1.5 transition-all shadow-[0_0_10px_rgba(250,204,21,0.3)]">
+        <span>🖼️</span>
+        <span class="hidden sm:inline">CARGAR IMAGEN</span>
+      </button>
+
+      <!-- Botón Activar / Desactivar Sonido SFX -->
+      <button id="audioBtn" onclick="toggleAudio()" class="px-3 md:px-5 py-1.5 bg-red-950/80 border border-red-500 hover:border-yellow-400 text-yellow-400 text-xs font-code flex items-center gap-2 transition-all shadow-[0_0_12px_rgba(239,68,68,0.4)]">
+        <span id="audioIcon">🔊</span>
+        <span id="audioText" class="hidden sm:inline">EFECTOS: ACTIVADOS</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- =========================================================================
+       PANEL DE CONTENIDO PRINCIPAL Y MENÚ LATERAL
+       ========================================================================= -->
+  <main class="relative z-10 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 p-4 md:p-6 h-[calc(100vh-70px)] overflow-hidden">
+    
+    <!-- MENÚ LATERAL ESTILIZADO DE COMANDOS -->
+    <section class="lg:col-span-4 xl:col-span-3 flex flex-col justify-center items-start space-y-3 md:space-y-4 py-2 pr-2">
+      
+      <div class="mb-2 pl-3 border-l-4 border-yellow-400 bg-black/60 p-2 rounded backdrop-blur-sm">
+        <h2 class="font-p5 text-3xl md:text-4xl text-white tracking-widest text-glow-red">COMANDOS</h2>
+        <p class="text-xs text-yellow-400 font-code">Selecciona una opción del sistema</p>
+      </div>
+
+      <nav class="w-full space-y-3">
+        
+        <!-- OPCIÓN 01: Explicación Teórica y Código -->
+        <div onclick="selectMenu('explicacion')" id="btn-explicacion" class="menu-item active group cursor-pointer w-full">
+          <div class="menu-bg p5-skew-left bg-slate-950/85 backdrop-blur-md border-2 border-red-500 text-white px-4 md:px-5 py-3 flex items-center justify-between transition-all">
+            <div class="p5-skew-left-inner flex items-center space-x-3">
+              <span class="font-p5 text-2xl font-black tracking-wider text-yellow-400 group-hover:text-white">01</span>
+              <span class="text-xs md:text-sm font-bold tracking-wide">EXPLICACIÓN</span>
+            </div>
+            <span class="p5-skew-left-inner text-[10px] md:text-xs font-code text-red-400 group-hover:text-yellow-300">Skill</span>
+          </div>
+        </div>
+
+        <!-- OPCIÓN 02: Programa 1 | Evaluador Aritmético -->
+        <div onclick="selectMenu('prog1')" id="btn-prog1" class="menu-item group cursor-pointer w-full">
+          <div class="menu-bg p5-skew-left bg-slate-950/85 backdrop-blur-md border-2 border-red-500 text-white px-4 md:px-5 py-3 flex items-center justify-between transition-all">
+            <div class="p5-skew-left-inner flex items-center space-x-3">
+              <span class="font-p5 text-2xl font-black tracking-wider text-yellow-400 group-hover:text-white">02</span>
+              <span class="text-xs md:text-sm font-bold tracking-wide">EVALUADOR</span>
+            </div>
+            <span class="p5-skew-left-inner text-[10px] md:text-xs font-code text-red-400 group-hover:text-yellow-300">Item</span>
+          </div>
+        </div>
+
+        <!-- OPCIÓN 03: Programa 2 | Torres de Hanoi -->
+        <div onclick="selectMenu('prog2')" id="btn-prog2" class="menu-item group cursor-pointer w-full">
+          <div class="menu-bg p5-skew-left bg-slate-950/85 backdrop-blur-md border-2 border-red-500 text-white px-4 md:px-5 py-3 flex items-center justify-between transition-all">
+            <div class="p5-skew-left-inner flex items-center space-x-3">
+              <span class="font-p5 text-2xl font-black tracking-wider text-yellow-400 group-hover:text-white">03</span>
+              <span class="text-xs md:text-sm font-bold tracking-wide">HANOI STACKS</span>
+            </div>
+            <span class="p5-skew-left-inner text-[10px] md:text-xs font-code text-red-400 group-hover:text-yellow-300">Equip</span>
+          </div>
+        </div>
+
+        <!-- OPCIÓN 04: Instrucciones / Requisitos Teams -->
+        <div onclick="selectMenu('instrucciones')" id="btn-instrucciones" class="menu-item group cursor-pointer w-full">
+          <div class="menu-bg p5-skew-left bg-slate-950/85 backdrop-blur-md border-2 border-red-500 text-white px-4 md:px-5 py-3 flex items-center justify-between transition-all">
+            <div class="p5-skew-left-inner flex items-center space-x-3">
+              <span class="font-p5 text-2xl font-black tracking-wider text-yellow-400 group-hover:text-white">04</span>
+              <span class="text-xs md:text-sm font-bold tracking-wide">INSTRUCCIONES</span>
+            </div>
+            <span class="p5-skew-left-inner text-[10px] md:text-xs font-code text-red-400 group-hover:text-yellow-300">Quest</span>
+          </div>
+        </div>
+
+      </nav>
+
+      <!-- Ryuji Skull Dialogue Box -->
+      <div class="w-full mt-3 p-3 bg-red-950/85 backdrop-blur-md border-2 border-red-500 rounded-sm text-xs text-yellow-300 font-code relative overflow-hidden shadow-lg">
+        <div class="relative z-10 flex items-start gap-2">
+          <span class="text-red-400 font-bold text-sm font-p5 tracking-wider">⚡ SKULL:</span>
+          <span id="ryujiDialogue">"¡For real?! Explora la teoría de Pilas, simula notaciones aritméticas o resuelve las Torres de Hanoi."</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ÁREA PRINCIPAL DE MÓDULOS DE CONTENIDO -->
+    <section class="lg:col-span-8 xl:col-span-9 h-full flex flex-col overflow-hidden relative">
+      
+      <!-- =========================================================================
+           MÓDULO 01: EXPLICACIÓN TEÓRICA Y CÓDIGO PYTHON
+           ========================================================================= -->
+      <article id="modulo-explicacion" class="modulo-contenido h-full p5-card-red p-4 md:p-6 overflow-y-auto flex flex-col space-y-6">
+        <div class="border-b border-red-500/50 pb-3 flex justify-between items-center">
+          <div>
+            <h1 class="font-p5 text-3xl md:text-4xl text-yellow-400 tracking-wider text-glow-yellow">ESTRUCTURA DE DATOS: PILA (STACK)</h1>
+            <p class="text-xs text-slate-300 font-code">Fundamentos LIFO, Notación Posfija/Prefija y Recursividad de Hanoi</p>
+          </div>
+          <span class="bg-red-600/60 text-yellow-300 border border-yellow-400 px-3 py-1 font-p5 text-lg">CONCEPTO LIFO</span>
+        </div>
+
+        <!-- Pestañas Internas de Navegación -->
+        <div class="flex space-x-2 border-b border-slate-800 pb-2">
+          <button onclick="switchTabExplicacion('tab-pila')" id="btn-tab-pila" class="tab-exp-btn px-3 py-1.5 text-xs md:text-sm font-bold border-b-2 border-yellow-400 text-yellow-400">01. La Pila LIFO</button>
+          <button onclick="switchTabExplicacion('tab-eval')" id="btn-tab-eval" class="tab-exp-btn px-3 py-1.5 text-xs md:text-sm font-bold border-b-2 border-transparent text-slate-400 hover:text-white">02. Evaluador Aritmético</button>
+          <button onclick="switchTabExplicacion('tab-hanoi')" id="btn-tab-hanoi" class="tab-exp-btn px-3 py-1.5 text-xs md:text-sm font-bold border-b-2 border-transparent text-slate-400 hover:text-white">03. Torres de Hanoi</button>
+          <button onclick="switchTabExplicacion('tab-codigo')" id="btn-tab-codigo" class="tab-exp-btn px-3 py-1.5 text-xs md:text-sm font-bold border-b-2 border-transparent text-slate-400 hover:text-white">04. Código Python</button>
+        </div>
+
+        <!-- Pestaña 1: La Pila LIFO -->
+        <div id="tab-pila" class="tab-exp-content space-y-4 text-slate-200 text-sm leading-relaxed">
+          <div class="p5-panel-dark p-4 border-l-4 border-red-500 rounded-r">
+            <h3 class="text-lg font-bold text-yellow-400 mb-1 font-p5 text-2xl">¿Qué es una Pila (Stack)?</h3>
+            <p>Una <strong>Pila</strong> es una estructura de datos lineal que opera bajo el principio <strong>LIFO (Last In, First Out)</strong>: el último elemento en ingresar es el primero en salir. Sus operaciones fundamentales son:</p>
+            <ul class="list-disc list-inside mt-2 space-y-1 font-code text-xs text-red-300">
+              <li><strong class="text-yellow-400">push(item):</strong> Apila un elemento en el tope.</li>
+              <li><strong class="text-yellow-400">pop():</strong> Desapila y retorna el elemento en el tope.</li>
+              <li><strong class="text-yellow-400">peek() / top():</strong> Consulta el elemento del tope sin removerlo.</li>
+              <li><strong class="text-yellow-400">is_empty():</strong> Verifica si la pila se encuentra vacía.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Pestaña 2: Evaluador Aritmético -->
+        <div id="tab-eval" class="tab-exp-content hidden space-y-4 text-slate-200 text-sm">
+          <div class="p5-panel-dark p-4 border-l-4 border-yellow-500 rounded-r">
+            <h3 class="text-lg font-bold text-yellow-400 mb-1 font-p5 text-2xl">Notación Posfija y Prefija</h3>
+            <p>Las notaciones polacas eliminan la necesidad de paréntesis al evaluar expresiones algebraicas:</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+              <div class="p-3 bg-black/70 border border-slate-700 rounded">
+                <h4 class="font-bold text-red-400 font-code text-xs">POSFIJA (RPN - Reverse Polish Notation)</h4>
+                <p class="text-xs text-slate-300 mt-1">Los operadores van <em>después</em> de los operandos. Ejemplo: <code class="text-yellow-300">5 3 + 2 *</code> equivale a <code class="text-yellow-300">(5 + 3) * 2 = 16</code>.</p>
+              </div>
+              <div class="p-3 bg-black/70 border border-slate-700 rounded">
+                <h4 class="font-bold text-yellow-400 font-code text-xs">PREFIJA (Notación Polaca Directa)</h4>
+                <p class="text-xs text-slate-300 mt-1">Los operadores van <em>antes</em> de los operandos. Ejemplo: <code class="text-yellow-300">* + 5 3 2</code> procesado de derecha a izquierda equivale a <code class="text-yellow-300">16</code>.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pestaña 3: Torres de Hanoi -->
+        <div id="tab-hanoi" class="tab-exp-content hidden space-y-4 text-slate-200 text-sm">
+          <div class="p5-panel-dark p-4 border-l-4 border-red-500 rounded-r">
+            <h3 class="text-lg font-bold text-yellow-400 mb-1 font-p5 text-2xl">Torres de Hanoi con Pilas</h3>
+            <p>El acertijo clásico de las Torres de Hanoi modela 3 postes como 3 objetos de la clase <strong>Pila</strong>. Sus reglas fundamentales son:</p>
+            <ol class="list-decimal list-inside mt-2 space-y-1 font-code text-xs text-yellow-300">
+              <li>Solo se puede mover un disco a la vez (un <code class="text-red-400">pop()</code> de la pila origen y un <code class="text-red-400">push()</code> en la destino).</li>
+              <li>Un disco mayor jamás puede colocarse sobre un disco menor.</li>
+              <li>El número mínimo de movimientos para $n$ discos es <strong>$2^n - 1$</strong>.</li>
+            </ol>
+          </div>
+        </div>
+
+        <!-- Pestaña 4: Código Python Completo -->
+        <div id="tab-codigo" class="tab-exp-content hidden space-y-3">
+          <div class="flex justify-between items-center bg-slate-900/90 p-2 rounded border border-red-500/40">
+            <span class="text-xs font-code text-yellow-400">pila_estructuras.py</span>
+            <button onclick="copyPythonCode()" class="px-3 py-1 bg-red-600 hover:bg-red-500 text-white font-code text-xs rounded transition-all">📋 Copiar Código</button>
+          </div>
+          <pre class="bg-black/90 p-4 rounded border border-slate-800 font-code text-xs text-green-400 overflow-x-auto h-80">
+<code># =========================================================
+# PERSONA ENGINE :: ESTRUCTURAS DE DATOS - PILA (STACK)
+# =========================================================
+
+class Pila:
+    """Implementación de una Pila (LIFO) usando Listas en Python."""
+    def __init__(self, nombre="Pila"):
+        self.items = []
+        self.nombre = nombre
+
+    def push(self, item):
+        """Apila un nuevo elemento."""
+        self.items.append(item)
+
+    def pop(self):
+        """Desapila y retorna el elemento superior."""
+        if not self.is_empty():
+            return self.items.pop()
+        raise IndexError("pop() realizado en una Pila vacía")
+
+    def peek(self):
+        """Retorna el elemento superior sin desapilarlo."""
+        if not self.is_empty():
+            return self.items[-1]
+        return None
+
+    def is_empty(self):
+        """Verifica si la pila está vacía."""
+        return len(self.items) == 0
+
+    def size(self):
+        """Retorna la cantidad de elementos."""
+        return len(self.items)
+
+    def __str__(self):
+        return f"{self.nombre}: {self.items}"
+
+
+# =========================================================
+# PROGRAMA 1: EVALUADOR DE EXPRESIONES POSFIJAS Y PREFIJAS
+# =========================================================
+
+def evaluar_posfija(expresion):
+    """Evalúa expresiones en notación Posfija (RPN). Ej: '5 3 + 2 *'"""
+    pila = Pila("EvaluadorPosfijo")
+    tokens = expresion.split()
+
+    for token in tokens:
+        if token.isdigit() or (token[0] == '-' and token[1:].isdigit()):
+            pila.push(float(token))
+        else:
+            b = pila.pop()
+            a = pila.pop()
+            if token == '+': pila.push(a + b)
+            elif token == '-': pila.push(a - b)
+            elif token == '*': pila.push(a * b)
+            elif token == '/': pila.push(a / b)
+            elif token == '^': pila.push(a ** b)
+
+    return pila.pop()
+
+
+def evaluar_prefija(expresion):
+    """Evalúa expresiones en notación Prefija. Ej: '* + 5 3 2'"""
+    pila = Pila("EvaluadorPrefijo")
+    tokens = expresion.split()
+
+    # Se procesa de derecha a izquierda
+    for token in reversed(tokens):
+        if token.isdigit() or (token[0] == '-' and token[1:].isdigit()):
+            pila.push(float(token))
+        else:
+            a = pila.pop()
+            b = pila.pop()
+            if token == '+': pila.push(a + b)
+            elif token == '-': pila.push(a - b)
+            elif token == '*': pila.push(a * b)
+            elif token == '/': pila.push(a / b)
+            elif token == '^': pila.push(a ** b)
+
+    return pila.pop()
+
+
+# =========================================================
+# PROGRAMA 2: TORRES DE HANOI CON 3 INSTANCIAS DE PILA
+# =========================================================
+
+def resolver_hanoi(n, origen, destino, auxiliar):
+    """Resuelve Torres de Hanoi utilizando 3 Pilas explícitas."""
+    if n == 1:
+        disco = origen.pop()
+        destino.push(disco)
+        print(f"Mover disco {disco} de {origen.nombre} a {destino.nombre}")
+    else:
+        resolver_hanoi(n - 1, origen, auxiliar, destino)
+        disco = origen.pop()
+        destino.push(disco)
+        print(f"Mover disco {disco} de {origen.nombre} a {destino.nombre}")
+        resolver_hanoi(n - 1, auxiliar, destino, origen)
+
+
+# Ejemplo de ejecución:
+if __name__ == "__main__":
+    print("--- EVALUACIÓN POSFIJA ---")
+    print("Resultado (5 3 + 2 *):", evaluar_posfija("5 3 + 2 *")) # 16.0
+
+    print("\n--- TORRES DE HANOI (3 DISCOS) ---")
+    torre_A = Pila("Torre A")
+    torre_B = Pila("Torre B")
+    torre_C = Pila("Torre C")
+
+    for d in range(3, 0, -1):
+        torre_A.push(d)
+
+    resolver_hanoi(3, torre_A, torre_C, torre_B)
+</code></pre>
+        </div>
+
+      </article>
+
+      <!-- =========================================================================
+           MÓDULO 02: PROGRAMA 1 | EVALUADOR ARITMÉTICO
+           ========================================================================= -->
+      <article id="modulo-prog1" class="modulo-contenido hidden h-full p5-card-red p-4 md:p-6 overflow-y-auto flex flex-col space-y-6">
+        <div class="border-b border-red-500/50 pb-3 flex justify-between items-center">
+          <div>
+            <h1 class="font-p5 text-3xl md:text-4xl text-yellow-400 tracking-wider text-glow-yellow">EVALUADOR DE EXPRESIONES ARITMÉTICAS</h1>
+            <p class="text-xs text-slate-300 font-code">Soporta Notación Posfija (RPN) y Prefija con simulación gráfica paso a paso</p>
+          </div>
+          <span class="bg-yellow-500 text-black px-3 py-1 font-p5 text-lg font-black">PROGRAMA 01</span>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          
+          <!-- Controles de Expresión -->
+          <div class="lg:col-span-6 space-y-4">
+            
+            <!-- Selector de Tipo Notación -->
+            <div class="flex gap-3 bg-slate-900/90 p-2 rounded border border-red-500/40">
+              <label class="flex-1 cursor-pointer">
+                <input type="radio" name="notacionType" value="posfija" checked onchange="setNotacion('posfija')" class="hidden peer">
+                <div class="p-2 text-center text-xs font-code rounded peer-checked:bg-red-600 peer-checked:text-white bg-slate-800 text-slate-300 transition-all">
+                  POSFIJA (RPN)
+                </div>
+              </label>
+              <label class="flex-1 cursor-pointer">
+                <input type="radio" name="notacionType" value="prefija" onchange="setNotacion('prefija')" class="hidden peer">
+                <div class="p-2 text-center text-xs font-code rounded peer-checked:bg-red-600 peer-checked:text-white bg-slate-800 text-slate-300 transition-all">
+                  PREFIJA
+                </div>
+              </label>
+            </div>
+
+            <!-- Entrada de Expresión -->
+            <div>
+              <label class="block text-xs font-code text-yellow-400 mb-1">INGRESA EXPRESIÓN (Espaciada por tokens):</label>
+              <input type="text" id="exprInput" value="5 3 + 2 *" class="w-full bg-slate-900 border-2 border-red-500 p-3 text-white font-code text-sm rounded focus:outline-none focus:border-yellow-400 transition-all">
+            </div>
+
+            <!-- Botones Rápida Selección de Ejemplos -->
+            <div>
+              <span class="text-xs font-code text-slate-400 block mb-1">EJEMPLOS RÁPIDOS:</span>
+              <div class="flex flex-wrap gap-2" id="ejemplosContainer">
+                <button onclick="loadExample('5 3 + 2 *')" class="px-2 py-1 bg-slate-800 hover:bg-red-900 border border-slate-700 text-xs font-code text-yellow-300 rounded">5 3 + 2 *</button>
+                <button onclick="loadExample('10 2 8 * + 3 -')" class="px-2 py-1 bg-slate-800 hover:bg-red-900 border border-slate-700 text-xs font-code text-yellow-300 rounded">10 2 8 * + 3 -</button>
+                <button onclick="loadExample('4 2 / 5 3 * +')" class="px-2 py-1 bg-slate-800 hover:bg-red-900 border border-slate-700 text-xs font-code text-yellow-300 rounded">4 2 / 5 3 * +</button>
+              </div>
+            </div>
+
+            <!-- Botones Ejecución -->
+            <div class="flex gap-3 pt-2">
+              <button onclick="iniciarEvaluacionPasoAPaso()" class="flex-1 py-3 bg-red-600 hover:bg-red-500 text-black font-p5 text-xl font-black tracking-wider transition-all shadow-[0_0_15px_rgba(239,68,68,0.5)]">
+                ▶ EVALUAR PASO A PASO
+              </button>
+              <button onclick="evaluarDirecto()" class="px-4 py-3 bg-yellow-500 hover:bg-yellow-400 text-black font-p5 text-xl font-black transition-all">
+                ⚡ DIRECTO
+              </button>
+            </div>
+
+            <!-- Caja de Estado del Proceso -->
+            <div class="p-3 bg-black/85 border border-red-500/50 rounded font-code text-xs text-slate-300 space-y-1">
+              <div class="text-yellow-400 font-bold">REGISTRO DE OPERACIÓN:</div>
+              <div id="evalLog" class="h-20 overflow-y-auto text-slate-300 space-y-1">Esperando expresión...</div>
+            </div>
+
+          </div>
+
+          <!-- Visualizador de Pila Dinámica -->
+          <div class="lg:col-span-6 flex flex-col justify-between bg-slate-900/85 backdrop-blur-md border-2 border-red-500 p-4 rounded min-h-[320px]">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+              <span class="font-p5 text-2xl text-yellow-400 tracking-wider">ESTADO DE LA PILA</span>
+              <span id="stackSizeBadge" class="text-xs font-code bg-red-950 text-red-400 border border-red-500 px-2 py-0.5">TAMAÑO: 0</span>
+            </div>
+
+            <!-- Contenedor Visual de Elementos en la Pila -->
+            <div id="stackVisualContainer" class="flex flex-col-reverse justify-start items-center gap-2 my-4 h-64 overflow-y-auto p-2 bg-black/70 rounded border border-slate-800">
+              <div class="text-xs text-slate-500 font-code my-auto">Pila Vacía</div>
+            </div>
+
+            <!-- Resultado Final -->
+            <div class="bg-red-950/80 border border-yellow-400 p-3 text-center rounded">
+              <span class="text-xs font-code text-yellow-300">RESULTADO FINAL:</span>
+              <div id="evalResult" class="font-p5 text-3xl font-black text-white text-glow-yellow">--</div>
+            </div>
+          </div>
+
+        </div>
+      </article>
+
+      <!-- =========================================================================
+           MÓDULO 03: PROGRAMA 2 | TORRES DE HANOI
+           ========================================================================= -->
+      <article id="modulo-prog2" class="modulo-contenido hidden h-full p5-card-red p-4 md:p-6 overflow-y-auto flex flex-col space-y-4">
+        <div class="border-b border-red-500/50 pb-3 flex justify-between items-center">
+          <div>
+            <h1 class="font-p5 text-3xl md:text-4xl text-yellow-400 tracking-wider text-glow-yellow">TORRES DE HANOI (3 PILAS)</h1>
+            <p class="text-xs text-slate-300 font-code">Simulación interactiva basada estrictamente en 3 objetos de la clase Pila</p>
+          </div>
+          <span class="bg-red-600 text-black px-3 py-1 font-p5 text-lg font-black">PROGRAMA 02</span>
+        </div>
+
+        <!-- Panel Superior Controles Hanoi -->
+        <div class="flex flex-wrap items-center justify-between gap-4 bg-slate-900/85 backdrop-blur-md p-3 rounded border border-red-500/40">
+          <div class="flex items-center space-x-3">
+            <label class="text-xs font-code text-yellow-400">DISCOS:</label>
+            <input type="range" id="hanoiDiskCount" min="3" max="7" value="3" onchange="resetHanoi()" class="accent-red-500 cursor-pointer">
+            <span id="diskCountLabel" class="font-p5 text-2xl text-white font-bold">3</span>
+          </div>
+
+          <div class="flex items-center space-x-2">
+            <button onclick="resetHanoi()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white font-code text-xs rounded border border-slate-600">
+              🔄 REINICIAR
+            </button>
+            <button id="btnAutoSolve" onclick="toggleAutoSolveHanoi()" class="px-4 py-1.5 bg-yellow-500 hover:bg-yellow-400 text-black font-p5 text-xl font-black rounded shadow-[0_0_10px_rgba(250,204,21,0.5)]">
+              ▶ AUTORESOLVER
+            </button>
+          </div>
+
+          <div class="flex items-center space-x-4 text-xs font-code">
+            <span class="text-slate-300">MOVIMIENTOS: <strong id="hanoiMoveCount" class="text-yellow-400 text-base">0</strong></span>
+            <span class="text-slate-300">MÍNIMO: <strong id="hanoiMinMoves" class="text-red-400 text-base">7</strong></span>
+          </div>
+        </div>
+
+        <!-- ÁREA VISUAL DE LAS 3 TORRES (PILAS) -->
+        <div class="grid grid-cols-3 gap-2 md:gap-6 bg-black/85 backdrop-blur-md p-4 rounded-lg border-2 border-red-500 min-h-[320px] items-end relative">
+          
+          <!-- TORRE A -->
+          <div onclick="clickTorre('A')" id="torre-A" class="torre-box flex flex-col items-center justify-end h-72 cursor-pointer hover:bg-red-950/30 p-2 rounded transition-all border border-transparent hover:border-red-500/50 relative">
+            <div class="w-3 bg-red-600 h-56 rounded-t absolute bottom-8 z-0"></div>
+            <div class="w-full bg-slate-800 h-4 rounded z-10 text-center text-[10px] font-code text-yellow-400">TORRE A</div>
+            <div id="disks-A" class="w-full flex flex-col-reverse items-center gap-1 z-10 mb-4 h-52 justify-start"></div>
+          </div>
+
+          <!-- TORRE B -->
+          <div onclick="clickTorre('B')" id="torre-B" class="torre-box flex flex-col items-center justify-end h-72 cursor-pointer hover:bg-red-950/30 p-2 rounded transition-all border border-transparent hover:border-red-500/50 relative">
+            <div class="w-3 bg-red-600 h-56 rounded-t absolute bottom-8 z-0"></div>
+            <div class="w-full bg-slate-800 h-4 rounded z-10 text-center text-[10px] font-code text-yellow-400">TORRE B</div>
+            <div id="disks-B" class="w-full flex flex-col-reverse items-center gap-1 z-10 mb-4 h-52 justify-start"></div>
+          </div>
+
+          <!-- TORRE C -->
+          <div onclick="clickTorre('C')" id="torre-C" class="torre-box flex flex-col items-center justify-end h-72 cursor-pointer hover:bg-red-950/30 p-2 rounded transition-all border border-transparent hover:border-red-500/50 relative">
+            <div class="w-3 bg-red-600 h-56 rounded-t absolute bottom-8 z-0"></div>
+            <div class="w-full bg-slate-800 h-4 rounded z-10 text-center text-[10px] font-code text-yellow-400">TORRE C</div>
+            <div id="disks-C" class="w-full flex flex-col-reverse items-center gap-1 z-10 mb-4 h-52 justify-start"></div>
+          </div>
+
+        </div>
+
+        <div class="text-center text-xs font-code text-slate-300 bg-black/60 p-2 rounded">
+          💡 <span class="text-yellow-300">MODO MANUAL:</span> Haz clic en una torre de origen para seleccionar el disco superior y luego en la torre de destino.
+        </div>
+      </article>
+
+      <!-- =========================================================================
+           MÓDULO 04: INSTRUCCIONES / CONSIGNA TEAMS
+           ========================================================================= -->
+      <article id="modulo-instrucciones" class="modulo-contenido hidden h-full p5-card-red p-4 md:p-6 overflow-y-auto flex flex-col space-y-6">
+        <div class="border-b border-red-500/50 pb-3 flex justify-between items-center">
+          <div>
+            <h1 class="font-p5 text-3xl md:text-4xl text-yellow-400 tracking-wider text-glow-yellow">REQUISITOS Y CONSIGNA DE LA PRÁCTICA</h1>
+            <p class="text-xs text-slate-300 font-code">Instrucciones oficiales para la entrega del proyecto</p>
+          </div>
+          <span class="bg-yellow-400 text-black px-3 py-1 font-p5 text-lg font-black">QUEST REQS</span>
+        </div>
+
+        <div class="space-y-4 text-sm font-code text-slate-200">
+          
+          <div class="p-4 p5-panel-dark border-l-4 border-red-500 rounded space-y-2">
+            <h3 class="text-base font-bold text-yellow-400 font-p5 text-2xl">📋 CONSIGNA GENERAL</h3>
+            <p class="text-xs text-slate-300">El alumno resolverá los siguientes problemas, para lo cual creará sus programas en Python:</p>
+            <ul class="list-disc list-inside text-xs text-red-300 space-y-1">
+              <li>Subir cada código a su repositorio correspondiente en <strong>GitHub</strong>.</li>
+              <li><strong>Formato de entrega:</strong> Video Explicando cada programa (máximo 3 min), subir la liga al Teams.</li>
+            </ul>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="p-4 bg-black/80 border border-red-500/60 rounded space-y-2">
+              <span class="bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded">PROGRAMA 01</span>
+              <h4 class="font-bold text-yellow-400 font-p5 text-xl">EVALUADOR DE EXPRESIONES</h4>
+              <p class="text-xs text-slate-300 leading-relaxed">
+                Escriba un programa que evalúe, con la ayuda de una pila, una expresión aritmética dada en notación posfija o prefija.
+              </p>
+            </div>
+
+            <div class="p-4 bg-black/80 border border-red-500/60 rounded space-y-2">
+              <span class="bg-yellow-500 text-black text-[10px] font-bold px-2 py-0.5 rounded">PROGRAMA 02</span>
+              <h4 class="font-bold text-yellow-400 font-p5 text-xl">TORRES DE HANOI</h4>
+              <p class="text-xs text-slate-300 leading-relaxed">
+                Implemente un programa, utilizando la clase Pila, que permita la resolución del juego de las Torres de Hanoi para tres o más discos.
+              </p>
+            </div>
+          </div>
+
+        </div>
+      </article>
+
+    </section>
+
+  </main>
+
+  <!-- NOTIFICACIÓN TOAST ESTILO PERSONA 5 (Sin usar alert()) -->
+  <div id="p5Toast" class="fixed top-20 right-6 z-50 transform translate-x-96 opacity-0 transition-all duration-300 bg-slate-950 border-2 border-yellow-400 p-4 shadow-[0_0_25px_rgba(250,204,21,0.6)] flex items-center gap-3">
+    <div id="toastIcon" class="text-2xl">⚡</div>
+    <div>
+      <div id="toastTitle" class="font-p5 text-xl text-yellow-400 font-bold">NOTIFICACIÓN</div>
+      <div id="toastMessage" class="text-xs font-code text-white">Mensaje del sistema</div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       LÓGICA JAVASCRIPT, AUDIO Y MODELADO DE PILAS
+       ========================================================================= -->
+  <script>
+    /* ==========================================
+       NOTIFICACIONES Y MODALES PERSONA 5
+       ========================================== */
+    function showToast(title, message, icon = '⚡') {
+      const toast = document.getElementById('p5Toast');
+      document.getElementById('toastTitle').innerText = title;
+      document.getElementById('toastMessage').innerText = message;
+      document.getElementById('toastIcon').innerText = icon;
+
+      toast.classList.remove('translate-x-96', 'opacity-0');
+      toast.classList.add('translate-x-0', 'opacity-100');
+
+      setTimeout(() => {
+        toast.classList.remove('translate-x-0', 'opacity-100');
+        toast.classList.add('translate-x-96', 'opacity-0');
+      }, 3500);
+    }
+
+    /* ==========================================
+       GESTIÓN DE CARGA DE IMAGEN REAL
+       ========================================== */
+    function cargarImagenUsuario(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const img = document.getElementById('ryujiImage');
+          img.src = e.target.result;
+          showToast("IMAGEN CARGADA", "Se ha aplicado la imagen seleccionada como fondo dinámico.", "🖼️");
+          playSfx(750, 'triangle', 0.2);
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    function handleImageError(imgElement) {
+      // Si ryuji.jpg no está presente localmente aún, genera una silueta limpia de soporte
+      imgElement.onerror = null;
+      imgElement.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500"><text x="50%" y="45%" dominant-baseline="middle" text-anchor="middle" fill="%23ffe600" font-family="sans-serif" font-size="28" font-weight="bold">📷 ryuji.jpg</text><text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" fill="%23ffffff" font-family="sans-serif" font-size="16">Haz clic en "Cargar Imagen" para seleccionar la tuya</text></svg>';
+    }
+
+    /* ==========================================
+       EFECTOS DE SONIDO SINTETIZADOS (Web Audio API)
+       ========================================== */
+    let audioEnabled = true;
+    let audioCtx = null;
+
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+    }
+
+    function playSfx(freq = 440, type = 'sine', duration = 0.1) {
+      if (!audioEnabled) return;
+      try {
+        initAudio();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {}
+    }
+
+    function toggleAudio() {
+      audioEnabled = !audioEnabled;
+      document.getElementById('audioIcon').innerText = audioEnabled ? '🔊' : '🔇';
+      document.getElementById('audioText').innerText = audioEnabled ? 'EFECTOS: ACTIVADOS' : 'EFECTOS: DESACTIVADOS';
+      if (audioEnabled) playSfx(600, 'square', 0.12);
+    }
+
+    /* ==========================================
+       PARTÍCULAS Y CHISPAS FLOTANTES
+       ========================================== */
+    function createSparks() {
+      const container = document.getElementById('sparksContainer');
+      for (let i = 0; i < 25; i++) {
+        const spark = document.createElement('div');
+        spark.className = 'spark';
+        spark.style.left = Math.random() * 100 + '%';
+        spark.style.top = (60 + Math.random() * 40) + '%';
+        spark.style.animation = `sparkFloat ${2 + Math.random() * 3}s linear infinite`;
+        spark.style.animationDelay = (Math.random() * 3) + 's';
+        container.appendChild(spark);
+      }
+    }
+
+    /* ==========================================
+       NAVEGACIÓN DE MENÚS Y PESTAÑAS
+       ========================================== */
+    const dialogs = {
+      explicacion: '"¡La Pila es pura estrategia LIFO! Revisa la teoría y copia el código Python listo para tu repositorio."',
+      prog1: '"¡Evaluemos expresiones aritméticas! Apila números y desapila con los operadores."',
+      prog2: '"¡Las Torres de Hanoi! Mueve los discos entre las 3 Pilas sin colocar uno grande sobre uno pequeño."',
+      instrucciones: '"¡Aquí están los requisitos oficiales! Graba tu video de 3min y sube tu repositorio en GitHub."'
+    };
+
+    function selectMenu(menuId) {
+      playSfx(520, 'triangle', 0.08);
+
+      document.querySelectorAll('.modulo-contenido').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
+
+      document.getElementById('modulo-' + menuId).classList.remove('hidden');
+      document.getElementById('btn-' + menuId).classList.add('active');
+
+      document.getElementById('ryujiDialogue').innerText = dialogs[menuId] || dialogs.explicacion;
+    }
+
+    function switchTabExplicacion(tabId) {
+      playSfx(480, 'sine', 0.06);
+      document.querySelectorAll('.tab-exp-content').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.tab-exp-btn').forEach(btn => {
+        btn.classList.remove('border-yellow-400', 'text-yellow-400');
+        btn.classList.add('border-transparent', 'text-slate-400');
+      });
+
+      document.getElementById(tabId).classList.remove('hidden');
+      const activeBtn = document.getElementById('btn-' + tabId);
+      activeBtn.classList.remove('border-transparent', 'text-slate-400');
+      activeBtn.classList.add('border-yellow-400', 'text-yellow-400');
+    }
+
+    function copyPythonCode() {
+      playSfx(800, 'square', 0.15);
+      const code = document.querySelector('code').innerText;
+      navigator.clipboard.writeText(code).then(() => {
+        showToast("CÓDIGO COPIADO", "El fuente Python de la Pila se copió al portapapeles.", "📋");
+      });
+    }
+
+    /* ==========================================
+       PROGRAMA 1: CLASE PILA Y EVALUADOR
+       ========================================== */
+    class Pila {
+      constructor(nombre) {
+        this.items = [];
+        this.nombre = nombre;
+      }
+      push(val) { this.items.push(val); }
+      pop() { return this.items.pop(); }
+      peek() { return this.items[this.items.length - 1]; }
+      isEmpty() { return this.items.length === 0; }
+      size() { return this.items.length; }
+    }
+
+    let notacionActual = 'posfija';
+
+    function setNotacion(tipo) {
+      notacionActual = tipo;
+      playSfx(450, 'sine', 0.08);
+      const examplesContainer = document.getElementById('ejemplosContainer');
+      if (tipo === 'posfija') {
+        document.getElementById('exprInput').value = "5 3 + 2 *";
+        examplesContainer.innerHTML = `
+          <button onclick="loadExample('5 3 + 2 *')" class="px-2 py-1 bg-slate-800 hover:bg-red-900 border border-slate-700 text-xs font-code text-yellow-300 rounded">5 3 + 2 *</button>
+          <button onclick="loadExample('10 2 8 * + 3 -')" class="px-2 py-1 bg-slate-800 hover:bg-red-900 border border-slate-700 text-xs font-code text-yellow-300 rounded">10 2 8 * + 3 -</button>
+        `;
+      } else {
+        document.getElementById('exprInput').value = "* + 5 3 2";
+        examplesContainer.innerHTML = `
+          <button onclick="loadExample('* + 5 3 2')" class="px-2 py-1 bg-slate-800 hover:bg-red-900 border border-slate-700 text-xs font-code text-yellow-300 rounded">* + 5 3 2</button>
+          <button onclick="loadExample('- + 10 * 2 8 3')" class="px-2 py-1 bg-slate-800 hover:bg-red-900 border border-slate-700 text-xs font-code text-yellow-300 rounded">- + 10 * 2 8 3</button>
+        `;
+      }
+    }
+
+    function loadExample(expr) {
+      document.getElementById('exprInput').value = expr;
+      playSfx(500, 'sine', 0.05);
+    }
+
+    function renderStackVisual(pila) {
+      const container = document.getElementById('stackVisualContainer');
+      document.getElementById('stackSizeBadge').innerText = `TAMAÑO: ${pila.size()}`;
+      
+      if (pila.isEmpty()) {
+        container.innerHTML = `<div class="text-xs text-slate-500 font-code my-auto">Pila Vacía</div>`;
+        return;
+      }
+
+      container.innerHTML = pila.items.map((item, idx) => `
+        <div class="w-full py-2 bg-gradient-to-r from-red-600 to-yellow-500 text-black font-code font-bold text-center rounded shadow-md transform transition-all duration-300 scale-100 flex justify-between px-4">
+          <span>[${idx}]</span>
+          <span>${item}</span>
+          <span>${idx === pila.size() - 1 ? '◄ TOPE' : ''}</span>
+        </div>
+      `).join('');
+    }
+
+    async function iniciarEvaluacionPasoAPaso() {
+      const expr = document.getElementById('exprInput').value.trim();
+      if (!expr) return;
+
+      const log = document.getElementById('evalLog');
+      log.innerHTML = '';
+      const pila = new Pila("Evaluador");
+      renderStackVisual(pila);
+
+      const tokens = expr.split(/\s+/);
+      const isPosfija = notacionActual === 'posfija';
+      const tokenList = isPosfija ? tokens : [...tokens].reverse();
+
+      log.innerHTML += `<div>🚀 Evaluando en notación <strong>${notacionActual.toUpperCase()}</strong>...</div>`;
+
+      for (let token of tokenList) {
+        await new Promise(r => setTimeout(r, 800));
+
+        if (!isNaN(parseFloat(token))) {
+          const num = parseFloat(token);
+          pila.push(num);
+          playSfx(600, 'sine', 0.1);
+          log.innerHTML += `<div class="text-green-400">► PUSH operando: <strong>${num}</strong></div>`;
+        } else {
+          if (pila.size() < 2) {
+            log.innerHTML += `<div class="text-red-500">❌ Error: Expresión mal formada</div>`;
+            return;
+          }
+          const op2 = pila.pop();
+          const op1 = pila.pop();
+          playSfx(350, 'sawtooth', 0.12);
+
+          let res = 0;
+          const a = isPosfija ? op1 : op2;
+          const b = isPosfija ? op2 : op1;
+
+          if (token === '+') res = a + b;
+          else if (token === '-') res = a - b;
+          else if (token === '*') res = a * b;
+          else if (token === '/') res = a / b;
+
+          pila.push(res);
+          log.innerHTML += `<div class="text-yellow-300">⚡ POP ${op1} y ${op2} ➔ Operación (${token}) ➔ PUSH <strong>${res}</strong></div>`;
+        }
+        log.scrollTop = log.scrollHeight;
+        renderStackVisual(pila);
+      }
+
+      const resFinal = pila.pop();
+      document.getElementById('evalResult').innerText = resFinal;
+      log.innerHTML += `<div class="text-yellow-400 font-bold">✅ Evaluación completada con éxito.</div>`;
+      playSfx(880, 'triangle', 0.25);
+    }
+
+    function evaluarDirecto() {
+      const expr = document.getElementById('exprInput').value.trim();
+      if (!expr) return;
+      const tokens = expr.split(/\s+/);
+      const pila = new Pila();
+      const isPosfija = notacionActual === 'posfija';
+      const tokenList = isPosfija ? tokens : [...tokens].reverse();
+
+      for (let token of tokenList) {
+        if (!isNaN(parseFloat(token))) {
+          pila.push(parseFloat(token));
+        } else {
+          const b = pila.pop();
+          const a = pila.pop();
+          const op1 = isPosfija ? a : b;
+          const op2 = isPosfija ? b : a;
+
+          if (token === '+') pila.push(op1 + op2);
+          else if (token === '-') pila.push(op1 - op2);
+          else if (token === '*') pila.push(op1 * op2);
+          else if (token === '/') pila.push(op1 / op2);
+        }
+      }
+
+      const res = pila.pop();
+      document.getElementById('evalResult').innerText = res;
+      renderStackVisual(pila);
+      playSfx(700, 'sine', 0.15);
+    }
+
+    /* ==========================================
+       PROGRAMA 2: TORRES DE HANOI (3 PILAS)
+       ========================================== */
+    let hanoiPilas = {
+      A: new Pila("Torre A"),
+      B: new Pila("Torre B"),
+      C: new Pila("Torre C")
+    };
+
+    let selectedTorre = null;
+    let hanoiMoves = 0;
+    let autoSolving = false;
+
+    function resetHanoi() {
+      autoSolving = false;
+      const numDisks = parseInt(document.getElementById('hanoiDiskCount').value);
+      document.getElementById('diskCountLabel').innerText = numDisks;
+      document.getElementById('hanoiMinMoves').innerText = Math.pow(2, numDisks) - 1;
+      
+      hanoiMoves = 0;
+      document.getElementById('hanoiMoveCount').innerText = hanoiMoves;
+      selectedTorre = null;
+
+      hanoiPilas.A = new Pila("Torre A");
+      hanoiPilas.B = new Pila("Torre B");
+      hanoiPilas.C = new Pila("Torre C");
+
+      for (let d = numDisks; d >= 1; d--) {
+        hanoiPilas.A.push(d);
+      }
+
+      renderHanoiDisks();
+    }
+
+    function renderHanoiDisks() {
+      const colors = [
+        'bg-yellow-400', 'bg-red-500', 'bg-orange-500', 
+        'bg-amber-400', 'bg-rose-500', 'bg-red-700', 'bg-yellow-300'
+      ];
+
+      ['A', 'B', 'C'].forEach(tKey => {
+        const container = document.getElementById(`disks-${tKey}`);
+        const torreBox = document.getElementById(`torre-${tKey}`);
+        
+        if (selectedTorre === tKey) {
+          torreBox.classList.add('border-yellow-400', 'bg-red-950/40');
+        } else {
+          torreBox.classList.remove('border-yellow-400', 'bg-red-950/40');
+        }
+
+        const pila = hanoiPilas[tKey];
+        container.innerHTML = pila.items.map(disk => {
+          const widthPct = 30 + (disk * 11);
+          return `
+            <div class="h-6 rounded ${colors[disk - 1]} border border-black flex items-center justify-center font-code text-xs font-black text-black shadow-lg transition-all duration-200" style="width: ${widthPct}%">
+              ${disk}
+            </div>
+          `;
+        }).join('');
+      });
+    }
+
+    function clickTorre(tKey) {
+      if (autoSolving) return;
+
+      if (!selectedTorre) {
+        if (!hanoiPilas[tKey].isEmpty()) {
+          selectedTorre = tKey;
+          playSfx(550, 'sine', 0.08);
+        }
+      } else {
+        if (selectedTorre !== tKey) {
+          moverDisco(selectedTorre, tKey);
+        }
+        selectedTorre = null;
+      }
+      renderHanoiDisks();
+    }
+
+    function moverDisco(origenKey, destinoKey) {
+      const origen = hanoiPilas[origenKey];
+      const destino = hanoiPilas[destinoKey];
+
+      if (origen.isEmpty()) return false;
+
+      if (!destino.isEmpty() && destino.peek() < origen.peek()) {
+        playSfx(200, 'sawtooth', 0.15);
+        showToast("MOVIMIENTO INVÁLIDO", "No puedes colocar un disco mayor sobre uno menor.", "⚠️");
+        return false;
+      }
+
+      const disco = origen.pop();
+      destino.push(disco);
+      hanoiMoves++;
+      document.getElementById('hanoiMoveCount').innerText = hanoiMoves;
+      playSfx(650, 'triangle', 0.1);
+
+      // Verificar Victoria
+      const numDisks = parseInt(document.getElementById('hanoiDiskCount').value);
+      if (hanoiPilas.C.size() === numDisks) {
+        setTimeout(() => {
+          playSfx(880, 'square', 0.3);
+          showToast("¡VICTORIA!", `Resolviste Hanoi en ${hanoiMoves} movimientos.`, "🎉");
+        }, 100);
+      }
+
+      return true;
+    }
+
+    async function toggleAutoSolveHanoi() {
+      if (autoSolving) return;
+      resetHanoi();
+      autoSolving = true;
+      const numDisks = parseInt(document.getElementById('hanoiDiskCount').value);
+
+      await resolverHanoiRecursivo(numDisks, 'A', 'C', 'B');
+      autoSolving = false;
+    }
+
+    async function resolverHanoiRecursivo(n, origen, destino, auxiliar) {
+      if (!autoSolving) return;
+      if (n === 1) {
+        moverDisco(origen, destino);
+        renderHanoiDisks();
+        await new Promise(r => setTimeout(r, 500));
+      } else {
+        await resolverHanoiRecursivo(n - 1, origen, auxiliar, destino);
+        if (!autoSolving) return;
+        moverDisco(origen, destino);
+        renderHanoiDisks();
+        await new Promise(r => setTimeout(r, 500));
+        await resolverHanoiRecursivo(n - 1, auxiliar, destino, origen);
+      }
+    }
+
+    /* INICIALIZACIÓN */
+    window.onload = function() {
+      createSparks();
+      resetHanoi();
+      renderStackVisual(new Pila());
+    };
+  </script>
+</body>
+</html>
