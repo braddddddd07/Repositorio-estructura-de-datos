@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Colas y Seguros</title>
+    <style>
+        :root {
+            --primary: #4F46E5;
+            --primary-hover: #4338CA;
+            --bg-color: #F3F4F6;
+            --surface: #FFFFFF;
+            --text-main: #1F2937;
+            --text-muted: #6B7280;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --border: #E5E7EB;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 2rem;
+            display: flex;
+            justify-content: center;
+        }
+
+        /* Se aumentó el max-width para que quepan las 3 terminales */
+        .container {
+            background-color: var(--surface);
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            width: 100%;
+            max-width: 950px; 
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            margin-top: 0;
+            color: var(--primary);
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+
+        /* --- Sistema de Pestañas --- */
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid var(--border);
+            margin-bottom: 1.5rem;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: color 0.2s, border-color 0.2s;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+        }
+
+        .tab-btn:hover { color: var(--primary); }
+        .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+        .tab-content { display: none; animation: fadeIn 0.3s ease-in-out; }
+        .tab-content.active { display: block; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- Estilos Generales Compartidos --- */
+        .input-group { margin-bottom: 1rem; }
+        .input-group label {
+            display: block; font-size: 0.9rem; font-weight: 600;
+            color: var(--text-muted); margin-bottom: 0.3rem;
+        }
+
+        input[type="text"] {
+            width: 100%; box-sizing: border-box; padding: 0.75rem;
+            border: 1px solid var(--border); border-radius: 8px;
+            font-size: 1rem; outline: none; transition: border-color 0.2s;
+        }
+        input[type="text"]:focus { border-color: var(--primary); }
+
+        button.btn-primary {
+            width: 100%; padding: 0.75rem 1.2rem; border: none;
+            border-radius: 8px; font-size: 0.95rem; font-weight: 600;
+            cursor: pointer; transition: all 0.2s ease; color: white;
+            background-color: var(--primary); margin-top: 0.5rem;
+        }
+        button.btn-primary:hover { background-color: var(--primary-hover); }
+
+        /* --- Estilos Pestaña Suma --- */
+        .resultado-box {
+            margin-top: 1.5rem; padding: 1rem; background: #EFF6FF;
+            border: 1px solid #BFDBFE; border-radius: 8px; color: #1E3A8A;
+            font-weight: 600; text-align: center; font-size: 1.1rem; min-height: 24px;
+        }
+
+        /* --- Estilos Pestaña Seguros --- */
+        .config-section {
+            background: #F9FAFB; padding: 1rem; border-radius: 8px;
+            border: 1px solid var(--border); margin-bottom: 1.5rem;
+        }
+        .config-title {
+            font-size: 0.9rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--text-muted);
+        }
+        .radio-group { display: flex; gap: 1.5rem; }
+        .radio-group label { cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-size: 0.95rem; }
+
+        .controls { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; align-items: center; }
+
+        .btn-atender { background-color: var(--success); padding: 0.75rem 1.2rem; border: none; border-radius: 8px; font-size: 0.95rem; font-weight: 600; cursor: pointer; color: white; }
+        .btn-atender:hover { background-color: #059669; }
+        .btn-atender:disabled { background-color: #A7F3D0; cursor: not-allowed; }
+
+        .btn-llegada { background-color: var(--primary); padding: 0.75rem 1.2rem; border: none; border-radius: 8px; font-size: 0.95rem; font-weight: 600; cursor: pointer; color: white; }
+        .btn-llegada:hover { background-color: var(--primary-hover); }
+
+        /* --- LAS 3 TERMINALES --- */
+        .terminals-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+        }
+
+        .terminal-box {
+            background-color: #111827;
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #374151;
+        }
+
+        .terminal-header {
+            background-color: #1F2937;
+            color: #E5E7EB;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-align: center;
+            padding: 0.5rem;
+            border-bottom: 1px solid #374151;
+        }
+
+        .console {
+            background-color: transparent;
+            color: #10B981;
+            font-family: 'Courier New', Courier, monospace;
+            padding: 0.75rem;
+            height: 250px;
+            overflow-y: auto;
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+
+        .console p { margin: 0; padding: 3px 0; border-bottom: 1px dashed rgba(255,255,255,0.1); }
+        .console p:last-child { border-bottom: none; }
+        
+        .log-info { color: #60A5FA; }    /* Azul para llegadas */
+        .log-warning { color: #FBBF24; } /* Amarillo para ventanilla */
+        .log-success { color: #34D399; } /* Verde para atendidos */
+        .log-error { color: #F87171; }   /* Rojo para errores */
+        .log-config { color: #A78BFA; font-style: italic; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Sistemas con Estructura Cola</h1>
+
+        <!-- Controles de Pestañas -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="cambiarPestana(event, 'tab-suma')">1. Suma de Colas</button>
+            <button class="tab-btn" onclick="cambiarPestana(event, 'tab-seguros')">2. Cía. de Seguros</button>
+        </div>
+
+        <!-- PESTAÑA 1: SUMA DE COLAS -->
+        <div id="tab-suma" class="tab-content active">
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0;">Ingrese números enteros separados por comas.</p>
+            
+            <div class="input-group">
+                <label>Cola A:</label>
+                <input type="text" id="colaA" placeholder="Ej. 3, 4, 2, 8, 12">
+            </div>
+            <div class="input-group">
+                <label>Cola B:</label>
+                <input type="text" id="colaB" placeholder="Ej. 6, 2, 9, 11, 3">
+            </div>
+
+            <button class="btn-primary" onclick="ejecutarSuma()">Sumar Colas</button>
+
+            <div class="resultado-box" id="resultadoSuma">
+                Resultado de la suma aparecerá aquí
+            </div>
+        </div>
+
+        <!-- PESTAÑA 2: COMPAÑÍA DE SEGUROS -->
+        <div id="tab-seguros" class="tab-content">
+            <div class="config-section">
+                <div class="config-title">Protocolo de Atención</div>
+                <div class="radio-group">
+                    <label>
+                        <input type="radio" name="modo" value="manual" checked onchange="cambiarModo(this.value)"> 
+                        Manual (Por Servicio)
+                    </label>
+                    <label>
+                        <input type="radio" name="modo" value="auto" onchange="cambiarModo(this.value)"> 
+                        Automático (FIFO 5s)
+                    </label>
+                </div>
+            </div>
+
+            <div class="controls">
+                <input type="text" id="servicio" style="width: auto; flex: 1;" placeholder="Ej. 1, CAJA..." autocomplete="off">
+                <button class="btn-llegada" onclick="llegadaCliente()">Llegada (C)</button>
+                <button class="btn-atender" id="btnAtender" onclick="atenderManual()">Atender (A)</button>
+            </div>
+
+            <!-- LAS 3 TERMINALES INDEPENDIENTES -->
+            <div class="terminals-grid">
+                <div class="terminal-box">
+                    <div class="terminal-header">1. TICKETS (LLEGADAS)</div>
+                    <div class="console" id="termLlegadas"></div>
+                </div>
+                
+                <div class="terminal-box">
+                    <div class="terminal-header">2. VENTANILLA (LLAMADOS)</div>
+                    <div class="console" id="termLlamados"></div>
+                </div>
+
+                <div class="terminal-box">
+                    <div class="terminal-header">3. SALIDA (ATENDIDOS)</div>
+                    <div class="console" id="termAtendidos"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // 0. LÓGICA DE INTERFAZ (Pestañas)
+        // ==========================================
+        function cambiarPestana(evt, tabId) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            evt.currentTarget.classList.add('active');
+        }
+
+        // ==========================================
+        // CLASE COLA BASE
+        // ==========================================
+        class Cola {
+            constructor() { this.items = []; }
+            encolar(elemento) { this.items.push(elemento); }
+            desencolar() { return this.estaVacia() ? null : this.items.shift(); }
+            estaVacia() { return this.items.length === 0; }
+            eliminarEspecifico(ticketId) {
+                const index = this.items.findIndex(cliente => cliente.ticket === ticketId);
+                if (index > -1) this.items.splice(index, 1);
+            }
+            obtenerArreglo() { return [...this.items]; }
+        }
+
+        // ==========================================
+        // 1. LÓGICA PESTAÑA: SUMA DE COLAS
+        // ==========================================
+        function sumarColas(cA, cB) {
+            let resultado = new Cola();
+            while (!cA.estaVacia() && !cB.estaVacia()) resultado.encolar(cA.desencolar() + cB.desencolar());
+            while (!cA.estaVacia()) resultado.encolar(cA.desencolar());
+            while (!cB.estaVacia()) resultado.encolar(cB.desencolar());
+            return resultado;
+        }
+
+        function ejecutarSuma() {
+            try {
+                const strA = document.getElementById('colaA').value;
+                const strB = document.getElementById('colaB').value;
+
+                const numsA = strA.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n));
+                const numsB = strB.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n));
+
+                if (numsA.length === 0 && numsB.length === 0) {
+                    document.getElementById('resultadoSuma').innerText = "Por favor ingrese valores válidos.";
+                    return;
+                }
+
+                let colaA = new Cola(); let colaB = new Cola();
+                numsA.forEach(n => colaA.encolar(n));
+                numsB.forEach(n => colaB.encolar(n));
+
+                const colaResultado = sumarColas(colaA, colaB);
+                document.getElementById('resultadoSuma').innerText = `Cola Resultado: [ ${colaResultado.obtenerArreglo().join(' , ')} ]`;
+            } catch (error) {
+                document.getElementById('resultadoSuma').innerText = "Error: Verifica el formato ingresado.";
+            }
+        }
+
+        // ==========================================
+        // 2. LÓGICA PESTAÑA: COMPAÑÍA DE SEGUROS
+        // ==========================================
+        let colasServicios = {}; 
+        let contadores = {};     
+        let colaGlobal = new Cola(); 
+        let modoActual = 'manual';
+
+        const inputServicio = document.getElementById('servicio');
+        const btnAtender = document.getElementById('btnAtender');
+
+        // Función centralizada para escribir en una terminal específica
+        function logTerminal(mensaje, terminalId, tipo = 'info') {
+            const consola = document.getElementById(terminalId);
+            const p = document.createElement('p');
+            p.className = `log-${tipo}`;
+            p.textContent = mensaje;
+            consola.appendChild(p);
+            consola.scrollTop = consola.scrollHeight; // Auto-scroll
+        }
+
+        // Mensajes de inicialización
+        logTerminal("Esperando clientes...", "termLlegadas", "log-config");
+        logTerminal("Ventanillas libres...", "termLlamados", "log-config");
+        logTerminal("Sin historial de hoy.", "termAtendidos", "log-config");
+
+        function cambiarModo(modo) {
+            modoActual = modo;
+            const msg = modo === 'auto' 
+                ? "[Modo] Auto (Llama a los 5s de llegar)" 
+                : "[Modo] Manual (Espera botón Atender)";
+            
+            logTerminal(msg, "termLlegadas", "log-config");
+            
+            if (modo === 'auto') {
+                btnAtender.disabled = true;
+            } else {
+                btnAtender.disabled = false;
+            }
+        }
+
+        function llegadaCliente() {
+            const serv = inputServicio.value.trim().toUpperCase();
+            if (!serv) {
+                logTerminal(`[!] Ingresa un servicio.`, "termLlegadas", "error");
+                return;
+            }
+
+            // Iniciar contadores si no existen
+            if (!colasServicios[serv]) {
+                colasServicios[serv] = new Cola();
+                contadores[serv] = 1;
+            }
+
+            // Crear Ticket
+            const ticket = `S${serv}-${contadores[serv]++}`;
+            const cliente = { ticket: ticket, servicio: serv };
+
+            // Agregar a colas
+            colasServicios[serv].encolar(cliente);
+            colaGlobal.encolar(cliente);
+
+            // 1. Mostrar en TERMINAL DE LLEGADAS
+            logTerminal(`[+] Ticket ${ticket} (Servicio: ${serv})`, "termLlegadas", "info");
+            inputServicio.value = '';
+
+            // Si está en automático, esperar 5 segundos para pasarlo a ventanilla
+            if (modoActual === 'auto') {
+                setTimeout(() => {
+                    procesarLlamadoAutomatico(cliente);
+                }, 5000);
+            }
+        }
+
+        function procesarLlamadoAutomatico(clienteObjetivo) {
+            // Verificar que siga en la cola (por si el usuario cambió de modo)
+            const index = colaGlobal.items.findIndex(c => c.ticket === clienteObjetivo.ticket);
+            
+            if (index > -1 && modoActual === 'auto') {
+                // Eliminar de las colas
+                colaGlobal.eliminarEspecifico(clienteObjetivo.ticket);
+                colasServicios[clienteObjetivo.servicio].eliminarEspecifico(clienteObjetivo.ticket);
+                
+                // 2. Mostrar en TERMINAL DE VENTANILLA (LLAMADOS)
+                logTerminal(`[Llamando] Pase cliente ${clienteObjetivo.ticket}`, "termLlamados", "warning");
+
+                // 3. Esperar 5 segundos exactos para mostrarlo como ATENDIDO
+                setTimeout(() => {
+                    finalizarAtencion(clienteObjetivo.ticket);
+                }, 5000);
+            }
+        }
+
+        function atenderManual() {
+            const serv = inputServicio.value.trim().toUpperCase();
+            if (!serv) {
+                logTerminal(`[!] Ingresa qué servicio atender.`, "termLlamados", "error");
+                return;
+            }
+
+            if (colasServicios[serv] && !colasServicios[serv].estaVacia()) {
+                // Sacar de la cola
+                const cliente = colasServicios[serv].desencolar();
+                colaGlobal.eliminarEspecifico(cliente.ticket);
+                
+                // 2. Mostrar en TERMINAL DE VENTANILLA (LLAMADOS)
+                logTerminal(`[Ventanilla] Pase cliente ${cliente.ticket}`, "termLlamados", "warning");
+
+                // 3. Esperar 5 segundos exactos para mostrarlo como ATENDIDO
+                setTimeout(() => {
+                    finalizarAtencion(cliente.ticket);
+                }, 5000);
+
+            } else {
+                logTerminal(`[-] Fila vacía para servicio ${serv}.`, "termLlamados", "error");
+            }
+            inputServicio.value = '';
+        }
+
+        function finalizarAtencion(ticket) {
+            // 4. Mostrar en TERMINAL DE SALIDA (ATENDIDOS)
+            logTerminal(`[✔] Cliente ${ticket} atendido exitosamente.`, "termAtendidos", "success");
+        }
+    </script>
+</body>
+</html>
