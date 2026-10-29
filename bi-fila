@@ -1,0 +1,350 @@
+Aquí tienes el código de `bi_cola.html` sin ningún comentario:
+
+```html
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualizador de Sistema de Caché Web (Bicola)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        
+        .log-text {
+            font-family: 'Fira Code', monospace;
+        }
+
+        .cache-block {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-origin: center;
+            text-decoration: none;
+        }
+
+        .cache-block:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            border-color: #3b82f6 !important;
+        }
+
+        .block-enter {
+            opacity: 0;
+            transform: translateX(-30px) scale(0.8);
+            width: 0;
+            margin-right: 0;
+            padding-left: 0;
+            padding-right: 0;
+            overflow: hidden;
+            pointer-events: none;
+        }
+        
+        .block-exit {
+            opacity: 0;
+            transform: translateX(30px) scale(0.5);
+            width: 0 !important;
+            min-width: 0 !important;
+            margin-right: 0 !important;
+            padding-left: 0 !important;
+            padding-right: 0 !important;
+            border: none !important;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .block-highlight {
+            background-color: #10B981 !important;
+            transform: scale(1.1) translateY(-10px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            z-index: 10;
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="min-h-screen text-gray-800 p-4 md:p-8 flex items-center justify-center">
+
+    <div class="max-w-5xl w-full bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+        <div class="bg-gradient-to-r from-blue-600 to-indigo-700 p-6 text-white">
+            <h1 class="text-3xl font-bold mb-2">Visualizador de Caché Web (LRU)</h1>
+            <p class="text-blue-100">Simulación del algoritmo de reemplazo "Menos Recientemente Usado" utilizando una Bicola.</p>
+        </div>
+
+        <div class="p-6 md:p-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-2 flex flex-col gap-6">
+                <div class="bg-gray-50 p-5 rounded-xl border border-gray-200">
+                    <div class="flex flex-col sm:flex-row gap-4">
+                        <div class="flex-1">
+                            <label for="urlInput" class="block text-sm font-medium text-gray-700 mb-1">Ingresa una URL a consultar</label>
+                            <input type="text" id="urlInput" placeholder="ej. google.com" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow" onkeypress="handleKeyPress(event)">
+                        </div>
+                        <div class="w-32">
+                            <label for="capacityInput" class="block text-sm font-medium text-gray-700 mb-1">Capacidad</label>
+                            <input type="number" id="capacityInput" value="4" min="2" max="8" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                        <div class="flex items-end">
+                            <button id="consultBtn" onclick="consultarURL()" class="w-full sm:w-auto px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                                <span>Consultar</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex-1 flex flex-col">
+                    <div class="flex justify-between text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 px-2">
+                        <span>Frente (Más Reciente)</span>
+                        <span>Final (Más Antiguo)</span>
+                    </div>
+                    
+                    <div class="relative bg-gray-100 border-2 border-dashed border-gray-300 rounded-xl p-4 min-h-[160px] flex items-center no-scrollbar overflow-x-auto">
+                        <div id="cacheContainer" class="flex flex-row items-center justify-start gap-4 w-full h-full relative">
+                            <div id="emptyMessage" class="absolute inset-0 flex items-center justify-center text-gray-400 italic">
+                                La caché está vacía. Consulta una URL para comenzar.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex justify-between items-center text-sm text-gray-500 px-2">
+                        <span id="cacheCount">0 elementos</span>
+                        <span id="cacheCapacityDisplay">Capacidad máxima: 4</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-gray-900 rounded-xl shadow-inner flex flex-col overflow-hidden h-[400px] lg:h-auto border border-gray-800">
+                <div class="bg-gray-800 text-gray-300 px-4 py-3 text-sm font-semibold border-b border-gray-700 flex justify-between items-center">
+                    <span>Registro de Actividad (Log)</span>
+                    <button onclick="clearLog()" class="text-xs hover:text-white transition-colors">Limpiar</button>
+                </div>
+                <div id="logContainer" class="flex-1 p-4 overflow-y-auto log-text text-sm flex flex-col gap-2">
+                    <div class="text-gray-500 italic">> Sistema inicializado...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let cache = []; 
+        let isAnimating = false; 
+
+        const urlInput = document.getElementById('urlInput');
+        const capacityInput = document.getElementById('capacityInput');
+        const consultBtn = document.getElementById('consultBtn');
+        const cacheContainer = document.getElementById('cacheContainer');
+        const emptyMessage = document.getElementById('emptyMessage');
+        const logContainer = document.getElementById('logContainer');
+        const cacheCount = document.getElementById('cacheCount');
+        const cacheCapacityDisplay = document.getElementById('cacheCapacityDisplay');
+
+        const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+        function handleKeyPress(e) {
+            if (e.key === 'Enter') {
+                consultarURL();
+            }
+        }
+
+        async function consultarURL() {
+            if (isAnimating) return;
+            
+            isAnimating = true;
+            consultBtn.disabled = true;
+
+            const rawUrl = urlInput.value.trim();
+            if (!rawUrl) {
+                addLog("Error: Por favor ingresa una URL válida.", "error");
+                resetState();
+                return;
+            }
+
+            const urlPattern = /^(https?:\/\/)?([\w\d\-]+\.)+[a-zA-Z]{3,}(\/[\w\d\-._~:/?#[\]@!$&'()*+,;=]*)?$/i;
+            if (!urlPattern.test(rawUrl)) {
+                addLog("Error: URL inválida o incompleta. Usa dominios completos (ej. google.com).", "error");
+                resetState();
+                return;
+            }
+
+            const url = rawUrl.toLowerCase().replace(/^https?:\/\//, '');
+            const capacity = parseInt(capacityInput.value) || 4;
+            
+            cacheCapacityDisplay.textContent = `Capacidad máxima: ${capacity}`;
+            urlInput.value = '';
+            emptyMessage.style.display = 'none';
+
+            const index = cache.indexOf(url);
+
+            if (index !== -1) {
+                addLog(`🔍 Consultando: ${url}`);
+                await sleep(300);
+                addLog(`✅ [Cache Hit] La página ya está en caché.`, "hit");
+                await moveBlockToFront(url);
+                
+                cache.splice(index, 1);
+                cache.unshift(url);
+                addLog(`↪️ Movida al frente (Más reciente).`, "info");
+                
+            } else {
+                addLog(`🔍 Consultando: ${url}`);
+                await sleep(300);
+                
+                if (cache.length >= capacity) {
+                    clearLog();
+                    addLog(`❌ [Cache Miss] Caché llena.`, "miss");
+                    const removedUrl = cache[cache.length - 1];
+                    addLog(`🗑️ Eliminando la más antigua: ${removedUrl}`, "warning");
+                    
+                    await removeLastBlock(removedUrl);
+                    cache.pop(); 
+                } else {
+                    addLog(`❌ [Cache Miss] Página nueva. Hay espacio disponible.`, "miss");
+                }
+
+                addLog(`➕ Agregando al frente: ${url}`, "info");
+                await addNewBlock(url);
+                cache.unshift(url); 
+            }
+
+            updateCounters();
+            resetState();
+        }
+
+        capacityInput.addEventListener('change', ajustarCapacidad);
+
+        async function ajustarCapacidad() {
+            while (isAnimating) await sleep(50);
+
+            const capacity = parseInt(capacityInput.value);
+            if (!capacity || capacity < 1) return;
+
+            cacheCapacityDisplay.textContent = `Capacidad máxima: ${capacity}`;
+            if (cache.length <= capacity) return;
+
+            isAnimating = true;
+            consultBtn.disabled = true;
+
+            while (cache.length > capacity) {
+                const removedUrl = cache[cache.length - 1];
+                await removeLastBlock(removedUrl);
+                cache.pop();
+                updateCounters();
+            }
+
+            isAnimating = false;
+            consultBtn.disabled = false;
+        }
+
+        function resetState() {
+            isAnimating = false;
+            consultBtn.disabled = false;
+            urlInput.focus();
+        }
+
+        async function addNewBlock(url) {
+            const block = createBlockElement(url);
+            block.classList.add('block-enter');
+            cacheContainer.insertBefore(block, cacheContainer.firstChild);
+            void block.offsetWidth;
+            block.classList.remove('block-enter');
+            await sleep(400); 
+        }
+
+        async function removeLastBlock(url) {
+            const blocks = Array.from(cacheContainer.children).filter(el => el.id !== 'emptyMessage');
+            const lastBlock = blocks.find(b => b.dataset.url === url) || blocks[blocks.length - 1];
+            if (!lastBlock) return;
+            
+            lastBlock.classList.add('block-exit');
+            await sleep(300);
+            
+            lastBlock.remove();
+        }
+
+        async function moveBlockToFront(url) {
+            const blocks = Array.from(cacheContainer.children).filter(el => el.id !== 'emptyMessage');
+            const targetBlock = blocks.find(b => b.dataset.url === url);
+
+            if (!targetBlock) return;
+
+            targetBlock.classList.add('block-highlight');
+            await sleep(500);
+            targetBlock.classList.remove('block-highlight');
+            
+            if (targetBlock === cacheContainer.firstChild) {
+                await sleep(100);
+                return;
+            }
+
+            targetBlock.classList.add('block-exit');
+            await sleep(300);
+            
+            cacheContainer.removeChild(targetBlock);
+            targetBlock.classList.remove('block-exit');
+            targetBlock.classList.add('block-enter');
+            
+            cacheContainer.insertBefore(targetBlock, cacheContainer.firstChild);
+            void targetBlock.offsetWidth; 
+            targetBlock.classList.remove('block-enter');
+            
+            await sleep(400);
+        }
+
+        function createBlockElement(url) {
+            const a = document.createElement('a');
+            a.dataset.url = url;
+            
+            a.href = url.startsWith('http') ? url : `https://${url}`;
+            a.target = "_blank";
+            
+            a.className = 'cache-block cursor-pointer relative flex-shrink-0 bg-white border border-blue-200 text-blue-800 rounded-xl shadow-sm h-20 min-w-[140px] max-w-[200px] flex items-center justify-center px-4 py-2 font-medium truncate';
+            a.innerHTML = `
+                <div class="absolute inset-0 bg-blue-50 opacity-50 rounded-xl pointer-events-none"></div>
+                <div class="relative z-10 flex flex-col items-center w-full pointer-events-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                    </svg>
+                    <span class="w-full text-center truncate text-sm" title="${url}">${url}</span>
+                </div>
+            `;
+            return a;
+        }
+        
+        function addLog(message, type = "normal") {
+            const entry = document.createElement('div');
+            let colorClass = "text-gray-300"; 
+            
+            if (type === "hit") colorClass = "text-green-400";
+            if (type === "miss") colorClass = "text-red-400";
+            if (type === "warning") colorClass = "text-yellow-400";
+            if (type === "info") colorClass = "text-blue-400";
+            if (type === "error") colorClass = "text-red-500 font-bold";
+
+            entry.className = `py-1 border-b border-gray-800/50 ${colorClass} opacity-0 transition-opacity duration-300`;
+            entry.textContent = `> ${message}`;
+            
+            logContainer.appendChild(entry);
+            setTimeout(() => { entry.classList.remove('opacity-0'); }, 50);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        function clearLog() {
+            logContainer.innerHTML = '<div class="text-gray-500 italic">> Registro limpiado...</div>';
+        }
+
+        function updateCounters() {
+            cacheCount.textContent = `${cache.length} elemento${cache.length !== 1 ? 's' : ''}`;
+            if (cache.length === 0) {
+                emptyMessage.style.display = 'flex';
+            }
+        }
+    </script>
+</body>
+</html>
+
