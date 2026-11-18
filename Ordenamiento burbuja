@@ -1,0 +1,65 @@
+import tkinter as tk
+import random
+import time
+
+ordenando = False
+
+def generar_arreglo():
+    global datos, ordenando
+    ordenando = False 
+    datos = [random.randint(10, 100) for _ in range(25)]
+    dibujar_datos(datos, ['#6495ED' for _ in range(len(datos))])
+
+def dibujar_datos(datos, colores):
+    canvas.delete("all")
+    c_width, c_height = 600, 400
+    x_width = c_width / (len(datos) + 1)
+    offset, spacing = 20, 5
+    max_val = max(datos)
+    for i, val in enumerate(datos):
+        x0 = i * x_width + offset + spacing
+        y0 = c_height - (val / max_val) * 350
+        x1 = (i + 1) * x_width + offset
+        y1 = c_height
+        canvas.create_rectangle(x0, y0, x1, y1, fill=colores[i])
+    root.update()
+
+def ordenar_burbuja():
+    global datos, ordenando
+    if ordenando: 
+        return
+    ordenando = True
+    n = len(datos)
+    
+    for i in range(n):
+        for j in range(0, n-i-1):
+            if not ordenando:
+                return
+            
+            colores = ['#FF4500' if x == j or x == j+1 else '#6495ED' for x in range(len(datos))]
+            dibujar_datos(datos, colores)
+            time.sleep(0.02)
+            
+            if datos[j] > datos[j+1]:
+                datos[j], datos[j+1] = datos[j+1], datos[j]
+                dibujar_datos(datos, colores)
+                time.sleep(0.02)
+                
+    if ordenando:
+        dibujar_datos(datos, ['#32CD32' for _ in range(len(datos))])
+        ordenando = False
+
+root = tk.Tk()
+root.title("Ordenamiento de Burbuja - Con detención")
+datos = []
+frame = tk.Frame(root)
+frame.pack(pady=10)
+
+tk.Button(frame, text="Generar Arreglo", command=generar_arreglo).grid(row=0, column=0, padx=10)
+tk.Button(frame, text="Ordenar (Burbuja)", command=ordenar_burbuja).grid(row=0, column=1, padx=10)
+
+canvas = tk.Canvas(root, width=600, height=400, bg="white")
+canvas.pack()
+
+generar_arreglo()
+root.mainloop()
