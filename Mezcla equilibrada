@@ -1,0 +1,398 @@
+import tkinter as tk
+from tkinter import ttk, messagebox
+import random
+import time
+
+
+class AppMezclaEquilibrada:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Ejercicio 3: Ordenamiento por Mezcla Equilibrada")
+        self.root.geometry("980x680")
+        self.root.minsize(900, 620)
+        self.root.configure(bg="#0f172a")
+
+        self.pasos = []
+        self.indice_paso = 0
+        self.ejecutando_auto = False
+        self.after_id = None
+        self.tiempo_ms = 0.0
+
+        self.construir_interfaz()
+        self.cargar_ejemplo()
+
+    def construir_interfaz(self):
+        header = tk.Frame(self.root, bg="#1e293b", pady=12, padx=20)
+        header.pack(fill="x")
+
+        tk.Label(
+            header,
+            text="EJERCICIO 3: MEZCLA EQUILIBRADA (NATURAL MERGE)",
+            font=("Segoe UI", 15, "bold"),
+            fg="#34d399",
+            bg="#1e293b",
+        ).pack(anchor="w")
+
+        tk.Label(
+            header,
+            text="Deteccion de tramos ascendentes naturales en calificaciones y distribucion equilibrada entre F1 y F2. Solo enteros >= 0.",
+            font=("Segoe UI", 9),
+            fg="#cbd5e1",
+            bg="#1e293b",
+        ).pack(anchor="w", pady=(2, 0))
+
+        panel_inputs = tk.Frame(self.root, bg="#0f172a", padx=20, pady=10)
+        panel_inputs.pack(fill="x")
+
+        fila_f = tk.Frame(panel_inputs, bg="#0f172a")
+        fila_f.pack(fill="x", pady=3)
+        tk.Label(
+            fila_f,
+            text="Calificaciones (enteros >= 0):",
+            font=("Segoe UI", 10, "bold"),
+            fg="#e2e8f0",
+            bg="#0f172a",
+            width=26,
+            anchor="w",
+        ).pack(side="left")
+        self.entry_datos = tk.Entry(
+            fila_f,
+            font=("Consolas", 11),
+            bg="#1e293b",
+            fg="#f8fafc",
+            insertbackground="#34d399",
+            relief="flat",
+            bd=6,
+        )
+        self.entry_datos.pack(side="left", fill="x", expand=True)
+
+        panel_botones = tk.Frame(self.root, bg="#0f172a", padx=20, pady=6)
+        panel_botones.pack(fill="x")
+
+        estilo_btn = {"font": ("Segoe UI", 9, "bold"), "relief": "flat", "padx": 12, "pady": 6, "cursor": "hand2"}
+
+        tk.Button(panel_botones, text="Cargar Datos", bg="#059669", fg="white", command=self.cargar_manual, **estilo_btn).pack(side="left", padx=(0, 6))
+        tk.Button(panel_botones, text="Ejemplo", bg="#334155", fg="white", command=self.cargar_ejemplo, **estilo_btn).pack(side="left", padx=6)
+        tk.Button(panel_botones, text="Aleatorios", bg="#334155", fg="white", command=self.cargar_aleatorios, **estilo_btn).pack(side="left", padx=6)
+
+        ttk.Separator(panel_botones, orient="vertical").pack(side="left", fill="y", padx=10)
+
+        tk.Button(panel_botones, text="< Anterior", bg="#475569", fg="white", command=self.paso_anterior, **estilo_btn).pack(side="left", padx=4)
+        tk.Button(panel_botones, text="Siguiente >", bg="#10b981", fg="#0f172a", command=self.paso_siguiente, **estilo_btn).pack(side="left", padx=4)
+        self.btn_auto = tk.Button(panel_botones, text="Auto Ejecutar", bg="#6366f1", fg="white", command=self.alternar_auto, **estilo_btn)
+        self.btn_auto.pack(side="left", padx=4)
+        tk.Button(panel_botones, text="Completar", bg="#f59e0b", fg="#0f172a", command=self.ir_final, **estilo_btn).pack(side="left", padx=4)
+        tk.Button(panel_botones, text="Reiniciar", bg="#ef4444", fg="white", command=self.reiniciar, **estilo_btn).pack(side="left", padx=4)
+
+        panel_metricas = tk.Frame(self.root, bg="#1e293b", padx=20, pady=8)
+        panel_metricas.pack(fill="x", padx=20, pady=6)
+
+        self.lbl_paso = tk.Label(panel_metricas, text="Paso: 0 / 0", font=("Segoe UI", 10, "bold"), fg="#34d399", bg="#1e293b")
+        self.lbl_paso.pack(side="left", padx=(0, 22))
+
+        self.lbl_tramos = tk.Label(panel_metricas, text="Tramos detectados: 0", font=("Segoe UI", 10, "bold"), fg="#38bdf8", bg="#1e293b")
+        self.lbl_tramos.pack(side="left", padx=(0, 22))
+
+        self.lbl_comp = tk.Label(panel_metricas, text="Comparaciones: 0", font=("Segoe UI", 10, "bold"), fg="#fbbf24", bg="#1e293b")
+        self.lbl_comp.pack(side="left", padx=(0, 22))
+
+        self.lbl_tiempo = tk.Label(panel_metricas, text="Tiempo: 0.0000 ms", font=("Segoe UI", 10, "bold"), fg="#a7f3d0", bg="#1e293b")
+        self.lbl_tiempo.pack(side="left", padx=(0, 22))
+
+        self.lbl_estado = tk.Label(panel_metricas, text="Listo", font=("Segoe UI", 10, "bold"), fg="#a7f3d0", bg="#1e293b")
+        self.lbl_estado.pack(side="right")
+
+        self.canvas = tk.Canvas(self.root, bg="#1e293b", height=305, highlightthickness=1, highlightbackground="#334155")
+        self.canvas.pack(fill="x", padx=20, pady=6)
+        self.canvas.bind("<Configure>", lambda e: self.renderizar_paso())
+
+        frame_log = tk.Frame(self.root, bg="#0f172a", padx=20, pady=4)
+        frame_log.pack(fill="both", expand=True)
+
+        tk.Label(frame_log, text="Bitacora de Tramos Naturales y Mezcla:", font=("Segoe UI", 9, "bold"), fg="#94a3b8", bg="#0f172a").pack(anchor="w")
+
+        self.txt_log = tk.Text(
+            frame_log,
+            height=6,
+            font=("Consolas", 10),
+            bg="#020617",
+            fg="#e2e8f0",
+            relief="flat",
+            padx=10,
+            pady=8,
+            state="disabled",
+        )
+        self.txt_log.pack(fill="both", expand=True, pady=(2, 10))
+
+    def parsear_no_negativos(self, texto):
+        partes = [p.strip() for p in texto.split(",") if p.strip()]
+        if not partes:
+            raise ValueError("Debes ingresar al menos un numero entero.")
+        numeros = []
+        for p in partes:
+            try:
+                num = int(p)
+            except ValueError:
+                raise ValueError(f"Valor invalido '{p}'. Solo se aceptan numeros enteros.")
+            if num < 0:
+                raise ValueError(f"No se aceptan numeros negativos ({num}). Ingresa valores >= 0.")
+            numeros.append(num)
+        return numeros
+
+    def obtener_tramos(self, lista):
+        if not lista:
+            return []
+        tramos = []
+        actual = [lista[0]]
+        for k in range(1, len(lista)):
+            if lista[k] >= lista[k - 1]:
+                actual.append(lista[k])
+            else:
+                tramos.append(actual)
+                actual = [lista[k]]
+        tramos.append(actual)
+        return tramos
+
+    def generar_pasos(self, datos):
+        archivo_f = list(datos)
+        pasos = []
+        comparaciones = 0
+
+        inicio = time.perf_counter()
+        tramos_iniciales = self.obtener_tramos(archivo_f)
+        pasos.append({
+            "tramos_f": tramos_iniciales,
+            "tramos_f1": [],
+            "tramos_f2": [],
+            "comparaciones": 0,
+            "fase": "inicial",
+            "mensaje": f"Archivo F cargado. Tramos naturales iniciales ({len(tramos_iniciales)}): {tramos_iniciales}",
+            "completado": len(tramos_iniciales) <= 1,
+        })
+
+        pasada = 1
+        while True:
+            tramos = self.obtener_tramos(archivo_f)
+            if len(tramos) <= 1:
+                break
+
+            tramos_f1 = []
+            tramos_f2 = []
+            for idx, tramo in enumerate(tramos):
+                if idx % 2 == 0:
+                    tramos_f1.append(tramo)
+                else:
+                    tramos_f2.append(tramo)
+
+            pasos.append({
+                "tramos_f": tramos,
+                "tramos_f1": tramos_f1,
+                "tramos_f2": tramos_f2,
+                "comparaciones": comparaciones,
+                "fase": "distribucion",
+                "mensaje": f"Pasada {pasada} (Distribucion): F1 recibe tramos {tramos_f1} | F2 recibe tramos {tramos_f2}",
+                "completado": False,
+            })
+
+            nuevo_f = []
+            total_pares = max(len(tramos_f1), len(tramos_f2))
+            for p in range(total_pares):
+                t1 = tramos_f1[p] if p < len(tramos_f1) else []
+                t2 = tramos_f2[p] if p < len(tramos_f2) else []
+                i = 0
+                j = 0
+                while i < len(t1) and j < len(t2):
+                    comparaciones += 1
+                    if t1[i] <= t2[j]:
+                        nuevo_f.append(t1[i])
+                        i += 1
+                    else:
+                        nuevo_f.append(t2[j])
+                        j += 1
+                while i < len(t1):
+                    nuevo_f.append(t1[i])
+                    i += 1
+                while j < len(t2):
+                    nuevo_f.append(t2[j])
+                    j += 1
+
+            archivo_f = nuevo_f
+            tramos_post = self.obtener_tramos(archivo_f)
+            pasos.append({
+                "tramos_f": tramos_post,
+                "tramos_f1": tramos_f1,
+                "tramos_f2": tramos_f2,
+                "comparaciones": comparaciones,
+                "fase": "mezcla",
+                "mensaje": f"Pasada {pasada} (Mezcla): F reconstruido -> {archivo_f} ({len(tramos_post)} tramo(s) restante(s))",
+                "completado": False,
+            })
+            pasada += 1
+
+        self.tiempo_ms = (time.perf_counter() - inicio) * 1000
+        pasos.append({
+            "tramos_f": [archivo_f] if archivo_f else [],
+            "tramos_f1": [],
+            "tramos_f2": [],
+            "comparaciones": comparaciones,
+            "fase": "final",
+            "mensaje": f"Mezcla Equilibrada finalizada. Calificaciones ordenadas: {archivo_f}",
+            "completado": True,
+        })
+        return pasos
+
+    def inicializar_datos(self, datos):
+        self.detener_auto()
+        self.pasos = self.generar_pasos(datos)
+        self.indice_paso = 0
+        self.lbl_tiempo.config(text=f"Tiempo: {self.tiempo_ms:.4f} ms")
+        self.renderizar_paso()
+
+    def cargar_manual(self):
+        try:
+            datos = self.parsear_no_negativos(self.entry_datos.get())
+            self.inicializar_datos(datos)
+        except ValueError as err:
+            messagebox.showerror("Entrada no valida", str(err))
+
+    def cargar_ejemplo(self):
+        calificaciones = [72, 85, 91, 64, 78, 88, 95, 60, 70, 84]
+        self.entry_datos.delete(0, tk.END)
+        self.entry_datos.insert(0, ", ".join(map(str, calificaciones)))
+        self.inicializar_datos(calificaciones)
+
+    def cargar_aleatorios(self):
+        calificaciones = [random.randint(50, 100) for _ in range(10)]
+        self.entry_datos.delete(0, tk.END)
+        self.entry_datos.insert(0, ", ".join(map(str, calificaciones)))
+        self.inicializar_datos(calificaciones)
+
+    def dibujar_tramos(self, titulo, lista_tramos, y_top, paleta_bordes, paleta_fondos):
+        ancho_canvas = max(self.canvas.winfo_width(), 860)
+        self.canvas.create_text(24, y_top, text=titulo, anchor="w", font=("Segoe UI", 10, "bold"), fill="#94a3b8")
+
+        aplanado = [(t_idx, val) for t_idx, tramo in enumerate(lista_tramos) for val in tramo]
+        n = len(aplanado)
+        if n == 0:
+            self.canvas.create_text(24, y_top + 28, text="[ Sin tramos en esta fase ]", anchor="w", font=("Consolas", 10), fill="#64748b")
+            return
+
+        margen = 24
+        espacio = 8
+        disponible = ancho_canvas - 2 * margen
+        ancho_caja = min(60, max(32, (disponible - (n - 1) * espacio) // n))
+        alto_caja = 36
+
+        for idx, (t_idx, val) in enumerate(aplanado):
+            x1 = margen + idx * (ancho_caja + espacio)
+            y1 = y_top + 14
+            x2 = x1 + ancho_caja
+            y2 = y1 + alto_caja
+
+            borde = paleta_bordes[t_idx % len(paleta_bordes)]
+            fondo = paleta_fondos[t_idx % len(paleta_fondos)]
+
+            self.canvas.create_rectangle(x1, y1, x2, y2, fill=fondo, outline=borde, width=2)
+            self.canvas.create_text((x1 + x2) / 2, (y1 + y2) / 2, text=str(val), font=("Consolas", 11, "bold"), fill="#f8fafc")
+
+    def renderizar_paso(self):
+        if not self.pasos:
+            return
+        estado = self.pasos[self.indice_paso]
+        self.canvas.delete("all")
+
+        self.dibujar_tramos(
+            "Archivo Principal F (agrupado por tramos naturales):",
+            estado["tramos_f"],
+            18,
+            ["#34d399", "#38bdf8", "#a78bfa", "#f472b6"],
+            ["#064e3b", "#0c4a6e", "#2e1065", "#500724"],
+        )
+        self.dibujar_tramos(
+            "Archivo Auxiliar F1 (tramos impares):",
+            estado["tramos_f1"],
+            112,
+            ["#818cf8", "#38bdf8"],
+            ["#1e1b4b", "#0f172a"],
+        )
+        self.dibujar_tramos(
+            "Archivo Auxiliar F2 (tramos pares):",
+            estado["tramos_f2"],
+            206,
+            ["#fbbf24", "#fb923c"],
+            ["#451a03", "#431407"],
+        )
+
+        total = len(self.pasos) - 1
+        self.lbl_paso.config(text=f"Paso: {self.indice_paso} / {total}")
+        self.lbl_tramos.config(text=f"Tramos en F: {len(estado['tramos_f'])}")
+        self.lbl_comp.config(text=f"Comparaciones: {estado['comparaciones']}")
+
+        if estado["completado"]:
+            self.lbl_estado.config(text="Ordenado", fg="#34d399")
+        else:
+            self.lbl_estado.config(text=f"Fase: {estado['fase'].capitalize()}", fg="#fbbf24")
+
+        self.txt_log.config(state="normal")
+        self.txt_log.delete("1.0", tk.END)
+        for idx in range(self.indice_paso + 1):
+            self.txt_log.insert(tk.END, f"[Paso {idx}] {self.pasos[idx]['mensaje']}\n")
+        self.txt_log.see(tk.END)
+        self.txt_log.config(state="disabled")
+
+    def paso_siguiente(self):
+        if self.indice_paso < len(self.pasos) - 1:
+            self.indice_paso += 1
+            self.renderizar_paso()
+        else:
+            self.detener_auto()
+
+    def paso_anterior(self):
+        self.detener_auto()
+        if self.indice_paso > 0:
+            self.indice_paso -= 1
+            self.renderizar_paso()
+
+    def ir_final(self):
+        self.detener_auto()
+        if self.pasos:
+            self.indice_paso = len(self.pasos) - 1
+            self.renderizar_paso()
+
+    def reiniciar(self):
+        self.detener_auto()
+        self.indice_paso = 0
+        self.renderizar_paso()
+
+    def alternar_auto(self):
+        if self.ejecutando_auto:
+            self.detener_auto()
+        else:
+            if self.indice_paso >= len(self.pasos) - 1:
+                self.indice_paso = 0
+            self.ejecutando_auto = True
+            self.btn_auto.config(text="Pausar", bg="#ec4899")
+            self.ciclo_auto()
+
+    def ciclo_auto(self):
+        if not self.ejecutando_auto:
+            return
+        if self.indice_paso < len(self.pasos) - 1:
+            self.indice_paso += 1
+            self.renderizar_paso()
+            self.after_id = self.root.after(750, self.ciclo_auto)
+        else:
+            self.detener_auto()
+
+    def detener_auto(self):
+        self.ejecutando_auto = False
+        self.btn_auto.config(text="Auto Ejecutar", bg="#6366f1")
+        if self.after_id is not None:
+            self.root.after_cancel(self.after_id)
+            self.after_id = None
+
+
+if __name__ == "__main__":
+    ventana = tk.Tk()
+    app = AppMezclaEquilibrada(ventana)
+    ventana.mainloop()
