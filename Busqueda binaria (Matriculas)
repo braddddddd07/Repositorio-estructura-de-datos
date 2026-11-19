@@ -1,0 +1,285 @@
+import random
+import tkinter as tk
+from tkinter import messagebox, simpledialog
+
+class AppBusquedaBinaria:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Busqueda Binaria - Padron de Matriculas")
+        self.root.geometry("980x530")
+        self.root.configure(bg="#F8FAFC")
+
+        self.datos_iniciales = [2021001, 2021015, 2021042, 2022008, 2022019, 2022087, 2023003, 2023054, 2024010, 2024099]
+        self.matriculas = list(self.datos_iniciales)
+        self.ejecutando = False
+
+        self.crear_menu()
+        self.crear_widgets()
+        self.dibujar_lista()
+
+    def crear_menu(self):
+        barra_menu = tk.Menu(self.root)
+        menu_opciones = tk.Menu(barra_menu, tearoff=0)
+        menu_opciones.add_command(label="Buscar matricula", command=self.buscar_desde_menu)
+        menu_opciones.add_command(label="Agregar matricula", command=self.agregar_desde_menu)
+        menu_opciones.add_command(label="Generar matriculas aleatorias", command=self.generar_desde_menu)
+        menu_opciones.add_command(label="Restaurar padron inicial", command=self.reiniciar_datos)
+        menu_opciones.add_separator()
+        menu_opciones.add_command(label="Salir", command=self.root.quit)
+        barra_menu.add_cascade(label="Menu", menu=menu_opciones)
+        self.root.config(menu=barra_menu)
+
+    def crear_widgets(self):
+        titulo = tk.Label(
+            self.root,
+            text="Busqueda Binaria: Padron de Matriculas Ordenadas (7 Digitos)",
+            font=("Segoe UI", 14, "bold"),
+            bg="#F8FAFC",
+            fg="#0F172A"
+        )
+        titulo.pack(pady=(12, 6))
+
+        frame_controles = tk.Frame(self.root, bg="#F8FAFC")
+        frame_controles.pack(pady=6)
+
+        tk.Label(frame_controles, text="Matricula (7 digitos):", font=("Segoe UI", 10), bg="#F8FAFC").grid(row=0, column=0, padx=5)
+        self.entry_matricula = tk.Entry(frame_controles, font=("Segoe UI", 10), width=16)
+        self.entry_matricula.grid(row=0, column=1, padx=5)
+
+        btn_buscar = tk.Button(
+            frame_controles,
+            text="Buscar Paso a Paso",
+            font=("Segoe UI", 10, "bold"),
+            bg="#2563EB",
+            fg="white",
+            command=self.iniciar_busqueda
+        )
+        btn_buscar.grid(row=0, column=2, padx=4)
+
+        btn_agregar = tk.Button(
+            frame_controles,
+            text="Agregar y Ordenar",
+            font=("Segoe UI", 10),
+            bg="#0D9488",
+            fg="white",
+            command=self.agregar_matricula
+        )
+        btn_agregar.grid(row=0, column=3, padx=4)
+
+        btn_aleatorias = tk.Button(
+            frame_controles,
+            text="Generar Aleatorias",
+            font=("Segoe UI", 10),
+            bg="#7C3AED",
+            fg="white",
+            command=lambda: self.generar_aleatorias(10)
+        )
+        btn_aleatorias.grid(row=0, column=4, padx=4)
+
+        btn_limpiar = tk.Button(
+            frame_controles,
+            text="Limpiar Vista",
+            font=("Segoe UI", 10),
+            bg="#64748B",
+            fg="white",
+            command=self.limpiar_vista
+        )
+        btn_limpiar.grid(row=0, column=5, padx=4)
+
+        self.frame_lista = tk.Frame(self.root, bg="#F8FAFC")
+        self.frame_lista.pack(pady=15)
+
+        lbl_log = tk.Label(
+            self.root,
+            text="Registro de division de rangos paso a paso:",
+            font=("Segoe UI", 10, "bold"),
+            bg="#F8FAFC",
+            fg="#334155"
+        )
+        lbl_log.pack(anchor="w", padx=25)
+
+        self.log_text = tk.Text(self.root, height=12, font=("Consolas", 10), bg="#0F172A", fg="#E2E8F0", padx=10, pady=10)
+        self.log_text.pack(fill="both", expand=True, padx=25, pady=(4, 15))
+
+    def dibujar_lista(self, izq=None, med=None, der=None, encontrado=None):
+        for widget in self.frame_lista.winfo_children():
+            widget.destroy()
+
+        for i, val in enumerate(self.matriculas):
+            color = "#E0E7FF"
+            color_texto = "#1E293B"
+            marcas = []
+
+            if encontrado == i:
+                color = "#4ADE80"
+                marcas.append("ENCONTRADO")
+            elif izq is not None and der is not None:
+                if i < izq or i > der:
+                    color = "#CBD5E1"
+                    color_texto = "#64748B"
+                elif i == med:
+                    color = "#FACC15"
+                else:
+                    color = "#DBEAFE"
+
+                if i == izq:
+                    marcas.append("IZQ")
+                if i == med:
+                    marcas.append("MED")
+                if i == der:
+                    marcas.append("DER")
+
+            etiqueta_punteros = "/".join(marcas)
+
+            tarjeta = tk.Frame(self.frame_lista, bg=color, bd=1, relief="solid", width=84, height=78)
+            tarjeta.pack_propagate(False)
+            tarjeta.grid(row=i // 10, column=i % 10, padx=3, pady=4)
+
+            tk.Label(tarjeta, text=f"[{i}]", font=("Segoe UI", 8), bg=color, fg="#475569").pack(pady=(3, 0))
+            tk.Label(tarjeta, text=str(val), font=("Segoe UI", 9, "bold"), bg=color, fg=color_texto).pack(pady=2)
+            tk.Label(tarjeta, text=etiqueta_punteros, font=("Segoe UI", 7, "bold"), bg=color, fg="#B91C1C").pack(pady=(0, 3))
+
+    def escribir_log(self, mensaje):
+        self.log_text.insert(tk.END, mensaje + "\n")
+        self.log_text.see(tk.END)
+
+    def limpiar_vista(self):
+        if self.ejecutando:
+            return
+        self.dibujar_lista()
+        self.log_text.delete("1.0", tk.END)
+
+    def reiniciar_datos(self):
+        if self.ejecutando:
+            return
+        self.matriculas = list(self.datos_iniciales)
+        self.limpiar_vista()
+        self.escribir_log("Padron restaurado a las matriculas iniciales.")
+
+    def es_matricula_valida(self, texto):
+        return len(texto) == 7 and texto.isdigit() and not texto.startswith("0")
+
+    def generar_aleatorias(self, cantidad=10):
+        if self.ejecutando:
+            return
+        nuevas = random.sample(range(1000000, 10000000), cantidad)
+        nuevas.sort()
+        self.matriculas = nuevas
+        self.limpiar_vista()
+        self.escribir_log(f"Nuevo ejercicio generado: {cantidad} matriculas aleatorias de 7 digitos ordenadas ascendentemente.")
+
+    def generar_desde_menu(self):
+        if self.ejecutando:
+            return
+        cantidad = simpledialog.askinteger(
+            "Generar Ejercicio Aleatorio",
+            "Cantidad de matriculas aleatorias a generar (5 a 20):",
+            initialvalue=10,
+            minvalue=5,
+            maxvalue=20
+        )
+        if cantidad is not None:
+            self.generar_aleatorias(cantidad)
+
+    def agregar_matricula(self):
+        if self.ejecutando:
+            return
+        texto = self.entry_matricula.get().strip()
+        if not self.es_matricula_valida(texto):
+            messagebox.showwarning(
+                "Formato invalido",
+                "La matricula debe tener exactamente 7 caracteres numericos y no iniciar en 0 (ej. 2024001)."
+            )
+            return
+
+        nueva = int(texto)
+        if nueva in self.matriculas:
+            messagebox.showinfo("Aviso", "Esa matricula ya se encuentra registrada.")
+            return
+
+        self.matriculas.append(nueva)
+        self.matriculas.sort()
+        self.entry_matricula.delete(0, tk.END)
+        self.dibujar_lista()
+        self.escribir_log(f"Matricula {nueva} agregada y lista reordenada automaticamente.")
+
+    def agregar_desde_menu(self):
+        if self.ejecutando:
+            return
+        texto = simpledialog.askstring("Agregar Matricula", "Ingresa la matricula (7 digitos numericos):")
+        if texto is not None:
+            limpio = texto.strip()
+            if not self.es_matricula_valida(limpio):
+                messagebox.showwarning(
+                    "Formato invalido",
+                    "La matricula debe tener exactamente 7 caracteres numericos y no iniciar en 0 (ej. 2024001)."
+                )
+                return
+            nueva = int(limpio)
+            if nueva in self.matriculas:
+                messagebox.showinfo("Aviso", "Esa matricula ya se encuentra registrada.")
+                return
+            self.matriculas.append(nueva)
+            self.matriculas.sort()
+            self.dibujar_lista()
+            self.escribir_log(f"Matricula {nueva} agregada y lista reordenada automaticamente.")
+
+    def buscar_desde_menu(self):
+        if self.ejecutando:
+            return
+        texto = simpledialog.askstring("Buscar Matricula", "Ingresa la matricula a buscar (7 digitos numericos):")
+        if texto is not None:
+            self.entry_matricula.delete(0, tk.END)
+            self.entry_matricula.insert(0, texto.strip())
+            self.iniciar_busqueda()
+
+    def iniciar_busqueda(self):
+        if self.ejecutando:
+            return
+        texto = self.entry_matricula.get().strip()
+        if not self.es_matricula_valida(texto):
+            messagebox.showwarning(
+                "Formato invalido",
+                "Ingresa una matricula valida de exactamente 7 caracteres numericos (sin iniciar en 0)."
+            )
+            return
+
+        objetivo = int(texto)
+        self.ejecutando = True
+        self.log_text.delete("1.0", tk.END)
+        self.escribir_log(f"Iniciando busqueda binaria para matricula: {objetivo}")
+        self.escribir_log("-" * 70)
+        self.paso_busqueda(0, len(self.matriculas) - 1, objetivo, 1)
+
+    def paso_busqueda(self, izq, der, objetivo, paso):
+        if izq > der:
+            self.dibujar_lista(izq, None, der, None)
+            self.escribir_log(f"Paso {paso}: izq ({izq}) > der ({der}). El rango de busqueda quedo vacio.")
+            self.escribir_log(f"RESULTADO: La matricula {objetivo} no esta registrada.")
+            self.ejecutando = False
+            return
+
+        med = (izq + der) // 2
+        self.dibujar_lista(izq, med, der, None)
+        self.escribir_log(
+            f"Paso {paso}: Rango activo [{izq}..{der}] -> medio = ({izq} + {der}) // 2 = {med} (Valor: {self.matriculas[med]})"
+        )
+        self.root.after(900, lambda: self.evaluar_medio(izq, med, der, objetivo, paso))
+
+    def evaluar_medio(self, izq, med, der, objetivo, paso):
+        valor_medio = self.matriculas[med]
+        if valor_medio == objetivo:
+            self.dibujar_lista(izq, med, der, med)
+            self.escribir_log(f"   -> EXITO: {valor_medio} == {objetivo}. Matricula localizada en el indice [{med}].")
+            self.ejecutando = False
+        elif valor_medio < objetivo:
+            self.escribir_log(f"   -> {valor_medio} < {objetivo}: Descartamos la mitad izquierda. Nuevo izq = {med + 1}.")
+            self.root.after(700, lambda: self.paso_busqueda(med + 1, der, objetivo, paso + 1))
+        else:
+            self.escribir_log(f"   -> {valor_medio} > {objetivo}: Descartamos la mitad derecha. Nuevo der = {med - 1}.")
+            self.root.after(700, lambda: self.paso_busqueda(izq, med - 1, objetivo, paso + 1))
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = AppBusquedaBinaria(root)
+    root.mainloop()
