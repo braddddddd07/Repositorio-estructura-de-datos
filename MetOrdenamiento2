@@ -1,0 +1,1096 @@
+import math
+import random
+import re
+import tkinter as tk
+from tkinter import messagebox, simpledialog
+
+
+class NumeroDato:
+
+  def __init__(self, texto, valor):
+    self.texto = texto
+    self.valor = float(valor)
+
+  def __lt__(self, other):
+    return self.valor < other.valor
+
+  def __le__(self, other):
+    return self.valor <= other.valor
+
+  def __gt__(self, other):
+    return self.valor > other.valor
+
+  def __ge__(self, other):
+    return self.valor >= other.valor
+
+  def __eq__(self, other):
+    if isinstance(other, NumeroDato):
+      return math.isclose(self.valor, other.valor, rel_tol=1e-9, abs_tol=1e-9)
+    return False
+
+  def __str__(self):
+    return self.texto
+
+  def __repr__(self):
+    return self.texto
+
+
+def fmt(num):
+  if "/" in num.texto or "√" in num.texto or "sqrt" in num.texto.lower() or "raiz" in num.texto.lower():
+    return f"{num.texto} (≈{num.valor:.3f})"
+  return num.texto
+
+
+def parsear_numero(token):
+  original = token.strip()
+  if not original:
+    raise ValueError("Elemento vacío.")
+
+  expr = original.lower().replace(" ", "")
+  expr = expr.replace("raiz", "sqrt")
+  expr = re.sub(r"√\s*\(", "sqrt(", expr)
+  expr = re.sub(r"√\s*(\d+(?:\.\d+)?)", r"sqrt(\1)", expr)
+
+  if "√" in expr:
+    raise ValueError(f"Formato de raíz inválido en '{original}'.")
+
+  expr = re.sub(r"(\d|\))\s*(sqrt|\()", r"\1*\2", expr)
+
+  limpio = expr.replace("sqrt", "")
+  if not re.fullmatch(r"[0-9\.\+\-\*\/\(\)]+", limpio):
+    raise ValueError(
+        f"Valor no reconocido: '{original}'.\n"
+        "Usa enteros, negativos, fracciones (ej. -3/4) o raíces (ej. √5, -sqrt(2))."
+    )
+
+  try:
+    valor = eval(expr, {"__builtins__": None}, {"sqrt": math.sqrt})
+  except ZeroDivisionError:
+    raise ValueError(f"División entre cero en '{original}'.")
+  except ValueError:
+    raise ValueError(f"No se permiten raíces de números negativos en '{original}'.")
+  except Exception:
+    raise ValueError(f"Expresión numérica inválida: '{original}'.")
+
+  if not isinstance(valor, (int, float)) or math.isnan(valor) or math.isinf(valor):
+    raise ValueError(f"Valor fuera de rango en '{original}'.")
+
+  return NumeroDato(original, float(valor))
+
+
+def generar_pasos_shell(arr):
+  a = arr.copy()
+  n = len(a)
+  pasos = []
+
+  pasos.append({
+      "array": a.copy(),
+      "colores": {},
+      "texto": f"Estado inicial: Arreglo de {n} elementos listo para ordenar con ShellSort.",
+      "info": "Gap actual: N/A",
+  })
+
+  gap = n // 2
+  while gap > 0:
+    pasos.append({
+        "array": a.copy(),
+        "colores": {},
+        "texto": f"Nuevo intervalo (gap) = {gap}. Se compararán elementos separados por {gap} posiciones.",
+        "info": f"Gap actual: {gap}",
+    })
+
+    for i in range(gap, n):
+      temp = a[i]
+      j = i
+
+      pasos.append({
+          "array": a.copy(),
+          "colores": {i: "#8b5cf6"},
+          "texto": f"Seleccionado elemento a[{i}] = {fmt(temp)} para insertarlo en su sublista con salto {gap}.",
+          "info": f"Gap actual: {gap} | Pivote: {temp}",
+      })
+
+      desplazo = False
+      while j >= gap and a[j - gap] > temp:
+        pasos.append({
+            "array": a.copy(),
+            "colores": {j - gap: "#f59e0b", j: "#ef4444"},
+            "texto": (
+                f"Comparando a[{j - gap}] ({fmt(a[j - gap])}) > {fmt(temp)}: "
+                f"Como es mayor, se desplaza {a[j - gap]} a la posición [{j}]."
+            ),
+            "info": f"Gap actual: {gap}",
+        })
+        a[j] = a[j - gap]
+        j -= gap
+        desplazo = True
+
+      if j >= gap:
+        pasos.append({
+            "array": a.copy(),
+            "colores": {j - gap: "#f59e0b", j: "#8b5cf6"},
+            "texto": f"Comparando a[{j - gap}] ({fmt(a[j - gap])}) <= {fmt(temp)}: No requiere más desplazamientos.",
+            "info": f"Gap actual: {gap}",
+        })
+
+      a[j] = temp
+      if desplazo:
+        pasos.append({
+            "array": a.copy(),
+            "colores": {j: "#10b981"},
+            "texto": f"Se coloca el valor {fmt(temp)} en la posición [{j}].",
+            "info": f"Gap actual: {gap}",
+        })
+
+    gap //= 2
+
+  pasos.append({
+      "array": a.copy(),
+      "colores": {idx: "#10b981" for idx in range(n)},
+      "texto": "¡Ordenamiento completado! Todos los elementos están ordenados con ShellSort.",
+      "info": "Gap final: 0 (Completado)",
+  })
+  return pasos
+
+
+def generar_pasos_quicksort(arr):
+  a = arr.copy()
+  n = len(a)
+  pasos = []
+  ordenados = set()
+
+  pasos.append({
+      "array": a.copy(),
+      "colores": {},
+      "texto": f"Estado inicial: Arreglo de {n} elementos listo para ordenar con Quicksort.",
+      "info": "Subarreglo activo: Todo el arreglo",
+  })
+
+  def colorear(extra=None):
+    c = {idx: "#10b981" for idx in ordenados}
+    if extra:
+      c.update(extra)
+    return c
+
+  def particionar(low, high):
+    pivote = a[high]
+    pasos.append({
+        "array": a.copy(),
+        "colores": colorear({high: "#8b5cf6"}),
+        "texto": f"Subarreglo [{low}..{high}]: Se elige como pivote a[{high}] = {fmt(pivote)}.",
+        "info": f"Rango: [{low}..{high}] | Pivote: {pivote}",
+    })
+
+    i = low - 1
+    for j in range(low, high):
+      pasos.append({
+          "array": a.copy(),
+          "colores": colorear({high: "#8b5cf6", j: "#f59e0b"}),
+          "texto": f"Comparando a[{j}] ({fmt(a[j])}) con el pivote ({fmt(pivote)}).",
+          "info": f"Rango: [{low}..{high}] | Pivote: {pivote}",
+      })
+
+      if a[j] <= pivote:
+        i += 1
+        if i != j:
+          a[i], a[j] = a[j], a[i]
+          pasos.append({
+              "array": a.copy(),
+              "colores": colorear({high: "#8b5cf6", i: "#ef4444", j: "#ef4444"}),
+              "texto": f"{fmt(a[i])} <= {fmt(pivote)}: Se intercambian a[{i}] ({a[i]}) y a[{j}] ({a[j]}).",
+              "info": f"Rango: [{low}..{high}] | Pivote: {pivote}",
+          })
+        else:
+          pasos.append({
+              "array": a.copy(),
+              "colores": colorear({high: "#8b5cf6", i: "#3b82f6"}),
+              "texto": f"{fmt(a[j])} <= {fmt(pivote)}: Permanece en la zona de menores (índice [{i}]).",
+              "info": f"Rango: [{low}..{high}] | Pivote: {pivote}",
+          })
+
+    if i + 1 != high:
+      a[i + 1], a[high] = a[high], a[i + 1]
+    p_idx = i + 1
+    ordenados.add(p_idx)
+    pasos.append({
+        "array": a.copy(),
+        "colores": colorear({p_idx: "#10b981"}),
+        "texto": (
+            f"El pivote {fmt(pivote)} se coloca en su posición definitiva [{p_idx}]. "
+            "Menores a la izquierda, mayores a la derecha."
+        ),
+        "info": f"Pivote fijado en índice [{p_idx}]",
+    })
+    return p_idx
+
+  def qs(low, high):
+    if low < high:
+      pi = particionar(low, high)
+      qs(low, pi - 1)
+      qs(pi + 1, high)
+    elif low == high and low not in ordenados:
+      ordenados.add(low)
+      pasos.append({
+          "array": a.copy(),
+          "colores": colorear(),
+          "texto": f"El elemento único a[{low}] ({fmt(a[low])}) queda en su posición definitiva.",
+          "info": f"Índice fijado: [{low}]",
+      })
+
+  qs(0, n - 1)
+
+  pasos.append({
+      "array": a.copy(),
+      "colores": {idx: "#10b981" for idx in range(n)},
+      "texto": "¡Ordenamiento completado! Todos los pivotes y particiones están ordenados.",
+      "info": "Completado",
+  })
+  return pasos
+
+
+def generar_pasos_heapsort(arr):
+  a = arr.copy()
+  n = len(a)
+  pasos = []
+  ordenados = set()
+
+  pasos.append({
+      "array": a.copy(),
+      "colores": {},
+      "texto": f"Estado inicial: Arreglo de {n} elementos listo para construir un Max-Heap.",
+      "info": "Fase: Inicialización",
+  })
+
+  def colorear(extra=None):
+    c = {idx: "#10b981" for idx in ordenados}
+    if extra:
+      c.update(extra)
+    return c
+
+  def heapify(tam, i, fase):
+    largest = i
+    left = 2 * i + 1
+    right = 2 * i + 2
+
+    comparados = {i: "#8b5cf6"}
+    if left < tam:
+      comparados[left] = "#f59e0b"
+    if right < tam:
+      comparados[right] = "#f59e0b"
+
+    if left < tam or right < tam:
+      hijos_txt = []
+      if left < tam:
+        hijos_txt.append(f"izq a[{left}]={fmt(a[left])}")
+      if right < tam:
+        hijos_txt.append(f"der a[{right}]={fmt(a[right])}")
+      pasos.append({
+          "array": a.copy(),
+          "colores": colorear(comparados),
+          "texto": f"{fase}: Comparando padre a[{i}]={fmt(a[i])} con hijos ({', '.join(hijos_txt)}).",
+          "info": f"Tamaño del Heap activo: {tam}",
+      })
+
+    if left < tam and a[left] > a[largest]:
+      largest = left
+    if right < tam and a[right] > a[largest]:
+      largest = right
+
+    if largest != i:
+      a[i], a[largest] = a[largest], a[i]
+      pasos.append({
+          "array": a.copy(),
+          "colores": colorear({i: "#ef4444", largest: "#ef4444"}),
+          "texto": (
+              f"{fase}: El hijo ({fmt(a[i])}) era mayor que el padre ({fmt(a[largest])}). "
+              f"Se intercambian posiciones [{i}] y [{largest}]."
+          ),
+          "info": f"Tamaño del Heap activo: {tam}",
+      })
+      heapify(tam, largest, fase)
+
+  for i in range(n // 2 - 1, -1, -1):
+    heapify(n, i, "Fase 1 (Construir Max-Heap)")
+
+  pasos.append({
+      "array": a.copy(),
+      "colores": colorear({0: "#8b5cf6"}),
+      "texto": f"Max-Heap construido: El elemento mayor ({fmt(a[0])}) está en la raíz [0].",
+      "info": "Max-Heap listo",
+  })
+
+  for i in range(n - 1, 0, -1):
+    a[i], a[0] = a[0], a[i]
+    ordenados.add(i)
+    pasos.append({
+        "array": a.copy(),
+        "colores": colorear({0: "#ef4444", i: "#10b981"}),
+        "texto": (
+            f"Fase 2 (Extracción): Se intercambia la raíz máxima ({fmt(a[i])}) con el final [{i}]. "
+            f"El valor {a[i]} queda ordenado."
+        ),
+        "info": f"Tamaño del Heap activo: {i}",
+    })
+    heapify(i, 0, "Fase 2 (Reajustar Heap)")
+
+  ordenados.add(0)
+  pasos.append({
+      "array": a.copy(),
+      "colores": {idx: "#10b981" for idx in range(n)},
+      "texto": "¡Ordenamiento completado! Todos los elementos fueron extraídos del montículo.",
+      "info": "Completado",
+  })
+  return pasos
+
+
+def generar_pasos_radix(arr):
+  a = arr.copy()
+  n = len(a)
+  pasos = []
+  hay_negativos = any(x.valor < 0 for x in a)
+  rango_cubetas = range(-9, 10) if hay_negativos else range(0, 10)
+
+  if all(float(x.valor).is_integer() for x in a):
+    decimales = 0
+  else:
+    decimales = 3
+    for d in [1, 2, 3, 4]:
+      ok = True
+      for i in range(n):
+        for j in range(i + 1, n):
+          if a[i] != a[j] and round(a[i].valor * (10**d)) == round(a[j].valor * (10**d)):
+            ok = False
+            break
+        if not ok:
+          break
+      if ok:
+        decimales = d
+        break
+
+  escala = 10**decimales
+
+  pasos.append({
+      "array": a.copy(),
+      "colores": {},
+      "texto": (
+          f"Estado inicial: {n} elementos listos para Radix Sort"
+          + (f" (precisión de {decimales} decimales para fracciones/raíces)." if decimales > 0 else ".")
+      ),
+      "info": "Pasada: Inicialización",
+      "cubetas": {k: [] for k in rango_cubetas},
+  })
+
+  enteros_esc = [int(round(x.valor * escala)) for x in a]
+  max_abs = max(abs(v) for v in enteros_esc) if enteros_esc else 0
+  exp = 1
+
+  nombres_potencia = {
+      -4: "Diezmilésimas (10⁻⁴)",
+      -3: "Milésimas (10⁻³)",
+      -2: "Centésimas (10⁻²)",
+      -1: "Décimas (10⁻¹)",
+      0: "Unidades (10⁰)",
+      1: "Decenas (10¹)",
+      2: "Centenas (10²)",
+      3: "Millares (10³)",
+      4: "Decenas de millar (10⁴)",
+  }
+
+  if max_abs == 0:
+    pasos.append({
+        "array": a.copy(),
+        "colores": {idx: "#10b981" for idx in range(n)},
+        "texto": "¡Ordenamiento completado!",
+        "info": "Completado",
+        "cubetas": {k: [] for k in rango_cubetas},
+    })
+    return pasos
+
+  while max_abs // exp > 0:
+    pot = round(math.log10(exp)) - decimales
+    etiqueta_pos = nombres_potencia.get(pot, f"Posición 10^{pot}")
+    cubetas = {k: [] for k in rango_cubetas}
+
+    for idx, item in enumerate(a):
+      val_int = int(round(item.valor * escala))
+      digito = -(abs(val_int) // exp % 10) if val_int < 0 else (val_int // exp) % 10
+      cubetas[digito].append(item)
+      pasos.append({
+          "array": a.copy(),
+          "colores": {idx: "#8b5cf6"},
+          "texto": (
+              f"Analizando {etiqueta_pos}: {fmt(item)} tiene dígito ({digito}) "
+              f"-> Se envía a la cubeta [{digito}]."
+          ),
+          "info": f"Pasada actual: {etiqueta_pos}",
+          "cubetas": {k: v.copy() for k, v in cubetas.items()},
+      })
+
+    nuevo_a = []
+    for k in rango_cubetas:
+      nuevo_a.extend(cubetas[k])
+
+    a = nuevo_a
+    pasos.append({
+        "array": a.copy(),
+        "colores": {idx: "#f59e0b" for idx in range(n)},
+        "texto": (
+            f"Recolección de cubetas ({etiqueta_pos}): Se extraen los elementos "
+            "desde la primera cubeta hasta la última."
+        ),
+        "info": f"Fin de pasada: {etiqueta_pos}",
+        "cubetas": {k: v.copy() for k, v in cubetas.items()},
+    })
+
+    exp *= 10
+
+  pasos.append({
+      "array": a.copy(),
+      "colores": {idx: "#10b981" for idx in range(n)},
+      "texto": "¡Ordenamiento completado! Todas las cifras posicionales fueron procesadas.",
+      "info": "Completado",
+      "cubetas": {k: [] for k in rango_cubetas},
+  })
+  return pasos
+
+
+class VentanaPasoAPaso(tk.Toplevel):
+
+  def __init__(self, parent, nombre_metodo, color_tema, pasos):
+    super().__init__(parent)
+    self.title(f"Visualización Paso a Paso - {nombre_metodo}")
+    self.geometry("860x650")
+    self.resizable(False, False)
+    self.configure(bg="#f4f6f9")
+
+    self.nombre_metodo = nombre_metodo
+    self.color_tema = color_tema
+    self.pasos = pasos
+    self.indice_actual = 0
+    self.reproduciendo = False
+    self.after_id = None
+
+    self.protocol("WM_DELETE_WINDOW", self.cerrar_ventana)
+    self.bind("<Left>", lambda e: self.paso_anterior())
+    self.bind("<Right>", lambda e: self.paso_siguiente())
+
+    self._construir_interfaz()
+    self._renderizar_paso()
+
+  def _construir_interfaz(self):
+    header = tk.Frame(self, bg=self.color_tema, pady=12, padx=20)
+    header.pack(fill="x")
+
+    tk.Label(
+        header,
+        text=f"Método: {self.nombre_metodo}",
+        font=("Segoe UI", 15, "bold"),
+        bg=self.color_tema,
+        fg="white",
+    ).pack(side="left")
+
+    self.lbl_contador = tk.Label(
+        header,
+        text="Paso 1 / 1",
+        font=("Segoe UI", 12, "bold"),
+        bg=self.color_tema,
+        fg="#f8fafc",
+    )
+    self.lbl_contador.pack(side="right")
+
+    leyenda = tk.Frame(self, bg="#e2e8f0", pady=6, padx=15)
+    leyenda.pack(fill="x")
+
+    items_leyenda = [
+        ("#3b82f6", "Normal"),
+        ("#8b5cf6", "Pivote / Activo"),
+        ("#f59e0b", "Comparando"),
+        ("#ef4444", "Intercambiando"),
+        ("#10b981", "Ordenado"),
+    ]
+    for color, nombre in items_leyenda:
+      f = tk.Frame(leyenda, bg="#e2e8f0")
+      f.pack(side="left", padx=10)
+      tk.Label(f, bg=color, width=2, height=1).pack(side="left", padx=(0, 4))
+      tk.Label(
+          f,
+          text=nombre,
+          font=("Segoe UI", 9, "bold"),
+          bg="#e2e8f0",
+          fg="#1e293b",
+      ).pack(side="left")
+
+    self.lbl_info_extra = tk.Label(
+        leyenda,
+        text="",
+        font=("Segoe UI", 9, "bold"),
+        bg="#e2e8f0",
+        fg="#0f172a",
+    )
+    self.lbl_info_extra.pack(side="right")
+
+    self.canvas = tk.Canvas(
+        self,
+        width=820,
+        height=355,
+        bg="#ffffff",
+        highlightthickness=1,
+        highlightbackground="#cbd5e1",
+    )
+    self.canvas.pack(pady=12, padx=20)
+
+    frame_explicacion = tk.LabelFrame(
+        self,
+        text=" ¿Qué ocurre en este paso? ",
+        font=("Segoe UI", 10, "bold"),
+        bg="#f4f6f9",
+        fg="#1e3a5f",
+        padx=12,
+        pady=8,
+    )
+    frame_explicacion.pack(fill="x", padx=20, pady=(0, 10))
+
+    self.lbl_explicacion = tk.Label(
+        frame_explicacion,
+        text="",
+        font=("Segoe UI", 11),
+        bg="#f4f6f9",
+        fg="#0f172a",
+        wraplength=780,
+        justify="left",
+        height=2,
+    )
+    self.lbl_explicacion.pack(fill="x")
+
+    frame_controles = tk.Frame(self, bg="#f4f6f9", pady=5)
+    frame_controles.pack(fill="x", padx=20)
+
+    btn_cfg = {
+        "font": ("Segoe UI", 10, "bold"),
+        "pady": 6,
+        "padx": 12,
+        "cursor": "hand2",
+    }
+
+    self.btn_inicio = tk.Button(
+        frame_controles,
+        text="⏮ Inicio",
+        bg="#475569",
+        fg="white",
+        command=self.ir_inicio,
+        **btn_cfg,
+    )
+    self.btn_inicio.pack(side="left", padx=4)
+
+    self.btn_anterior = tk.Button(
+        frame_controles,
+        text="◀ Anterior",
+        bg="#2563eb",
+        fg="white",
+        command=self.paso_anterior,
+        **btn_cfg,
+    )
+    self.btn_anterior.pack(side="left", padx=4)
+
+    self.btn_siguiente = tk.Button(
+        frame_controles,
+        text="Siguiente ▶",
+        bg="#2563eb",
+        fg="white",
+        command=self.paso_siguiente,
+        **btn_cfg,
+    )
+    self.btn_siguiente.pack(side="left", padx=4)
+
+    self.btn_play = tk.Button(
+        frame_controles,
+        text="⏯ Reproducir",
+        bg="#059669",
+        fg="white",
+        command=self.alternar_reproduccion,
+        **btn_cfg,
+    )
+    self.btn_play.pack(side="left", padx=4)
+
+    self.btn_final = tk.Button(
+        frame_controles,
+        text="Final ⏭",
+        bg="#475569",
+        fg="white",
+        command=self.ir_final,
+        **btn_cfg,
+    )
+    self.btn_final.pack(side="left", padx=4)
+
+    tk.Label(
+        frame_controles,
+        text="Velocidad:",
+        font=("Segoe UI", 9, "bold"),
+        bg="#f4f6f9",
+    ).pack(side="left", padx=(12, 4))
+
+    self.velocidad_var = tk.StringVar(value="Normal")
+    menu_vel = tk.OptionMenu(
+        frame_controles, self.velocidad_var, "Lenta", "Normal", "Rápida"
+    )
+    menu_vel.config(font=("Segoe UI", 9), bg="#e2e8f0")
+    menu_vel.pack(side="left")
+
+    tk.Button(
+        frame_controles,
+        text="Cerrar Ventana",
+        bg="#dc2626",
+        fg="white",
+        command=self.cerrar_ventana,
+        **btn_cfg,
+    ).pack(side="right")
+
+  def _renderizar_paso(self):
+    paso = self.pasos[self.indice_actual]
+    arr = paso["array"]
+    colores = paso["colores"]
+    n = len(arr)
+
+    self.lbl_contador.config(text=f"Paso {self.indice_actual + 1} / {len(self.pasos)}")
+    self.lbl_explicacion.config(text=paso["texto"])
+    self.lbl_info_extra.config(text=paso.get("info", ""))
+
+    self.canvas.delete("all")
+    w_canvas = 820
+    tiene_cubetas = "cubetas" in paso
+    h_zona_barras = 200 if tiene_cubetas else 315
+
+    margen_x = 35
+    ancho_disponible = w_canvas - 2 * margen_x
+    paso_x = ancho_disponible / max(n, 1)
+    ancho_barra = min(56, paso_x * 0.72)
+
+    valores = [item.valor for item in arr]
+    min_val = min(valores) if valores else 0.0
+    max_val = max(valores) if valores else 1.0
+    rango_val = max_val - min_val if not math.isclose(max_val, min_val) else 1.0
+
+    base_y = h_zona_barras - 28
+    max_altura_barra = h_zona_barras - 65
+
+    for idx, item in enumerate(arr):
+      centro_x = margen_x + paso_x * idx + paso_x / 2
+      x0 = centro_x - ancho_barra / 2
+      x1 = centro_x + ancho_barra / 2
+
+      altura = 24 + ((item.valor - min_val) / rango_val) * (max_altura_barra - 24)
+      y0 = base_y - altura
+      y1 = base_y
+
+      color_barra = colores.get(idx, "#3b82f6")
+
+      self.canvas.create_rectangle(
+          x0, y0, x1, y1, fill=color_barra, outline="#1e293b", width=1
+      )
+
+      fuente_val = ("Segoe UI", 9, "bold") if n <= 16 else ("Segoe UI", 8, "bold")
+      self.canvas.create_text(
+          centro_x, y0 - 11, text=item.texto, font=fuente_val, fill="#0f172a"
+      )
+
+      if n <= 24:
+        self.canvas.create_text(
+            centro_x,
+            base_y + 13,
+            text=f"[{idx}]",
+            font=("Consolas", 8),
+            fill="#64748b",
+        )
+
+    if tiene_cubetas:
+      cubetas = paso["cubetas"]
+      claves = list(cubetas.keys())
+      num_c = len(claves)
+      y_top_cubeta = 225
+      y_bot_cubeta = 340
+      ancho_c = (w_canvas - 30) / num_c
+
+      self.canvas.create_line(
+          15, y_top_cubeta - 12, w_canvas - 15, y_top_cubeta - 12, fill="#cbd5e1"
+      )
+
+      for i, k in enumerate(claves):
+        cx0 = 15 + i * ancho_c + 1
+        cx1 = 15 + (i + 1) * ancho_c - 1
+        cmid = (cx0 + cx1) / 2
+
+        self.canvas.create_rectangle(
+            cx0,
+            y_top_cubeta,
+            cx1,
+            y_bot_cubeta,
+            fill="#f8fafc",
+            outline="#94a3b8",
+        )
+        self.canvas.create_rectangle(
+            cx0,
+            y_bot_cubeta - 20,
+            cx1,
+            y_bot_cubeta,
+            fill="#1e3a5f",
+            outline="#1e3a5f",
+        )
+        self.canvas.create_text(
+            cmid,
+            y_bot_cubeta - 10,
+            text=str(k),
+            font=("Segoe UI", 8, "bold"),
+            fill="white",
+        )
+
+        contenido = "\n".join(x.texto for x in cubetas[k][-4:])
+        self.canvas.create_text(
+            cmid,
+            (y_top_cubeta + y_bot_cubeta - 20) / 2,
+            text=contenido,
+            font=("Consolas", 7, "bold"),
+            fill="#0f172a",
+        )
+
+    self.btn_inicio.config(state="normal" if self.indice_actual > 0 else "disabled")
+    self.btn_anterior.config(state="normal" if self.indice_actual > 0 else "disabled")
+    self.btn_siguiente.config(
+        state="normal" if self.indice_actual < len(self.pasos) - 1 else "disabled"
+    )
+    self.btn_final.config(
+        state="normal" if self.indice_actual < len(self.pasos) - 1 else "disabled"
+    )
+
+  def ir_inicio(self):
+    self._detener_auto()
+    self.indice_actual = 0
+    self._renderizar_paso()
+
+  def ir_final(self):
+    self._detener_auto()
+    self.indice_actual = len(self.pasos) - 1
+    self._renderizar_paso()
+
+  def paso_anterior(self):
+    self._detener_auto()
+    if self.indice_actual > 0:
+      self.indice_actual -= 1
+      self._renderizar_paso()
+
+  def paso_siguiente(self):
+    if self.indice_actual < len(self.pasos) - 1:
+      self.indice_actual += 1
+      self._renderizar_paso()
+    else:
+      self._detener_auto()
+
+  def alternar_reproduccion(self):
+    if self.reproduciendo:
+      self._detener_auto()
+    else:
+      if self.indice_actual >= len(self.pasos) - 1:
+        self.indice_actual = 0
+      self.reproduciendo = True
+      self.btn_play.config(text="⏸ Pausar", bg="#d97706")
+      self._ciclo_auto()
+
+  def _ciclo_auto(self):
+    if not self.reproduciendo:
+      return
+    if self.indice_actual < len(self.pasos) - 1:
+      self.indice_actual += 1
+      self._renderizar_paso()
+      retardos = {"Lenta": 1100, "Normal": 600, "Rápida": 220}
+      ms = retardos.get(self.velocidad_var.get(), 600)
+      self.after_id = self.after(ms, self._ciclo_auto)
+    else:
+      self._detener_auto()
+
+  def _detener_auto(self):
+    self.reproduciendo = False
+    if self.after_id:
+      self.after_cancel(self.after_id)
+      self.after_id = None
+    self.btn_play.config(text="⏯ Reproducir", bg="#059669")
+
+  def cerrar_ventana(self):
+    self._detener_auto()
+    self.destroy()
+
+
+class OrdenamientoApp:
+
+  def __init__(self, root):
+    self.root = root
+    self.root.title("ADA2 - Métodos de Ordenamiento en Python")
+    self.root.geometry("700x500")
+    self.root.resizable(False, False)
+    self.root.configure(bg="#f4f6f9")
+
+    self.root.protocol("WM_DELETE_WINDOW", self.salir_aplicacion)
+    self._crear_widgets()
+
+  def _crear_widgets(self):
+    header = tk.Frame(self.root, bg="#1e3a5f", pady=16)
+    header.pack(fill="x")
+    tk.Label(
+        header,
+        text="ADA2 - Métodos de Ordenamiento",
+        font=("Segoe UI", 16, "bold"),
+        bg="#1e3a5f",
+        fg="white",
+    ).pack()
+    tk.Label(
+        header,
+        text="Soporta Enteros, Negativos, Fracciones y Raíces • Paso a Paso",
+        font=("Segoe UI", 10),
+        bg="#1e3a5f",
+        fg="#d0e1f9",
+    ).pack()
+
+    main_frame = tk.Frame(self.root, bg="#f4f6f9", padx=25, pady=18)
+    main_frame.pack(fill="both", expand=True)
+
+    frame_cant = tk.LabelFrame(
+        main_frame,
+        text=" 1. Cantidad de números ",
+        font=("Segoe UI", 10, "bold"),
+        bg="#f4f6f9",
+        fg="#1e3a5f",
+        padx=12,
+        pady=10,
+    )
+    frame_cant.pack(fill="x", pady=(0, 12))
+
+    tk.Label(
+        frame_cant,
+        text="¿Cuántos números deseas ordenar?:",
+        font=("Segoe UI", 10),
+        bg="#f4f6f9",
+    ).pack(side="left")
+
+    self.entry_cantidad = tk.Entry(
+        frame_cant, font=("Segoe UI", 11), width=8, justify="center"
+    )
+    self.entry_cantidad.pack(side="left", padx=10)
+
+    tk.Button(
+        frame_cant,
+        text="Capturar uno por uno",
+        font=("Segoe UI", 9, "bold"),
+        bg="#e2e8f0",
+        cursor="hand2",
+        command=self.capturar_uno_por_uno,
+    ).pack(side="left", padx=5)
+
+    tk.Button(
+        frame_cant,
+        text="Generar aleatorios",
+        font=("Segoe UI", 9, "bold"),
+        bg="#e2e8f0",
+        cursor="hand2",
+        command=self.generar_aleatorios,
+    ).pack(side="left", padx=5)
+
+    frame_nums = tk.LabelFrame(
+        main_frame,
+        text=" 2. Lista de números (enteros, negativos, fracciones y raíces) ",
+        font=("Segoe UI", 10, "bold"),
+        bg="#f4f6f9",
+        fg="#1e3a5f",
+        padx=12,
+        pady=10,
+    )
+    frame_nums.pack(fill="x", pady=(0, 14))
+
+    tk.Label(
+        frame_nums,
+        text="Separados por comas o espacios (ej: -12, 3/4, √5, -√2, 8, -1/3):",
+        font=("Segoe UI", 9),
+        bg="#f4f6f9",
+    ).pack(anchor="w")
+
+    self.entry_numeros = tk.Entry(frame_nums, font=("Segoe UI", 11))
+    self.entry_numeros.pack(fill="x", pady=(6, 0))
+
+    frame_metodos = tk.LabelFrame(
+        main_frame,
+        text=" 3. Abrir ventana paso a paso del método deseado ",
+        font=("Segoe UI", 10, "bold"),
+        bg="#f4f6f9",
+        fg="#1e3a5f",
+        padx=12,
+        pady=12,
+    )
+    frame_metodos.pack(fill="x", pady=(0, 16))
+
+    grid_botones = tk.Frame(frame_metodos, bg="#f4f6f9")
+    grid_botones.pack(fill="x")
+    grid_botones.columnconfigure(0, weight=1)
+    grid_botones.columnconfigure(1, weight=1)
+
+    botones_info = [
+        ("1. ShellSort (Paso a Paso)", "#1d4ed8", "ShellSort", 0, 0),
+        ("2. Quicksort (Paso a Paso)", "#0f766e", "Quicksort", 0, 1),
+        ("3. Heapsort (Paso a Paso)", "#6d28d9", "Heapsort", 1, 0),
+        ("4. Radix Sort (Paso a Paso)", "#b45309", "Radix", 1, 1),
+    ]
+
+    for texto, color, clave, fila, col in botones_info:
+      tk.Button(
+          grid_botones,
+          text=texto,
+          font=("Segoe UI", 10, "bold"),
+          bg=color,
+          fg="white",
+          pady=10,
+          cursor="hand2",
+          command=lambda c=clave, col_t=color: self.abrir_ventana_metodo(c, col_t),
+      ).grid(row=fila, column=col, padx=6, pady=6, sticky="ew")
+
+    frame_pie = tk.Frame(main_frame, bg="#f4f6f9")
+    frame_pie.pack(fill="x")
+
+    tk.Button(
+        frame_pie,
+        text="Limpiar Campos",
+        font=("Segoe UI", 10),
+        bg="#64748b",
+        fg="white",
+        padx=16,
+        pady=7,
+        cursor="hand2",
+        command=self.limpiar_campos,
+    ).pack(side="left")
+
+    tk.Button(
+        frame_pie,
+        text="✖ Salir del Programa",
+        font=("Segoe UI", 10, "bold"),
+        bg="#dc2626",
+        fg="white",
+        padx=18,
+        pady=7,
+        cursor="hand2",
+        command=self.salir_aplicacion,
+    ).pack(side="right")
+
+  def _obtener_cantidad(self):
+    texto = self.entry_cantidad.get().strip()
+    if not texto.isdigit() or int(texto) <= 0:
+      raise ValueError("Ingresa una cantidad de números válida (entero mayor a 0).")
+    return int(texto)
+
+  def _obtener_lista_numeros(self):
+    n = self._obtener_cantidad()
+    raw_nums = self.entry_numeros.get().strip()
+    if not raw_nums:
+      raise ValueError("Debes ingresar los números a ordenar.")
+
+    partes = raw_nums.replace(",", " ").split()
+    if len(partes) != n:
+      raise ValueError(
+          f"Indicaste {n} números, pero ingresaste {len(partes)}.\n"
+          "Asegúrate de que coincidan."
+      )
+
+    return [parsear_numero(p) for p in partes]
+
+  def capturar_uno_por_uno(self):
+    try:
+      n = self._obtener_cantidad()
+      numeros = []
+      for i in range(1, n + 1):
+        while True:
+          val = simpledialog.askstring(
+              "Ingreso de números",
+              f"Ingresa el número {i} de {n}\n(ej. -8, 3/4, √5, -sqrt(2), 15):",
+              parent=self.root,
+          )
+          if val is None:
+            return
+          try:
+            dato = parsear_numero(val)
+            numeros.append(dato.texto)
+            break
+          except ValueError as err:
+            messagebox.showwarning("Valor inválido", str(err), parent=self.root)
+
+      self.entry_numeros.delete(0, tk.END)
+      self.entry_numeros.insert(0, ", ".join(numeros))
+    except ValueError as e:
+      messagebox.showwarning("Dato inválido", str(e))
+
+  def _crear_token_aleatorio(self, tipo):
+    if tipo == "entero_neg":
+      return str(random.randint(-25, -1))
+    if tipo == "entero_pos":
+      return str(random.randint(1, 25))
+    if tipo == "fraccion":
+      num = random.choice([i for i in range(-9, 10) if i != 0])
+      den = random.choice([2, 3, 4, 5, 8])
+      while num % den == 0:
+        den = random.choice([2, 3, 4, 5, 8])
+      return f"{num}/{den}"
+    radicando = random.choice([2, 3, 5, 6, 7, 8, 10, 11, 13, 15, 20])
+    signo = random.choice(["", "-"])
+    coef = random.choice(["", "", "2"])
+    return f"{signo}{coef}√{radicando}"
+
+  def generar_aleatorios(self):
+    try:
+      n = self._obtener_cantidad()
+      tipos_base = ["entero_neg", "fraccion", "raiz", "entero_pos"]
+      seleccion = []
+
+      for i in range(n):
+        if i < len(tipos_base):
+          tipo = tipos_base[i]
+        else:
+          tipo = random.choice(tipos_base)
+        seleccion.append(self._crear_token_aleatorio(tipo))
+
+      random.shuffle(seleccion)
+      self.entry_numeros.delete(0, tk.END)
+      self.entry_numeros.insert(0, ", ".join(seleccion))
+    except ValueError as e:
+      messagebox.showwarning("Dato inválido", str(e))
+
+  def abrir_ventana_metodo(self, metodo, color_tema):
+    try:
+      numeros = self._obtener_lista_numeros()
+
+      if metodo == "ShellSort":
+        pasos = generar_pasos_shell(numeros)
+        titulo = "1. ShellSort"
+      elif metodo == "Quicksort":
+        pasos = generar_pasos_quicksort(numeros)
+        titulo = "2. Quicksort"
+      elif metodo == "Heapsort":
+        pasos = generar_pasos_heapsort(numeros)
+        titulo = "3. Heapsort"
+      elif metodo == "Radix":
+        pasos = generar_pasos_radix(numeros)
+        titulo = "4. Radix Sort"
+      else:
+        return
+
+      VentanaPasoAPaso(self.root, titulo, color_tema, pasos)
+
+    except ValueError as e:
+      messagebox.showerror("Error de validación", str(e))
+
+  def limpiar_campos(self):
+    self.entry_cantidad.delete(0, tk.END)
+    self.entry_numeros.delete(0, tk.END)
+    self.entry_cantidad.focus()
+
+  def salir_aplicacion(self):
+    if messagebox.askyesno("Confirmar salida", "¿Deseas salir del programa de ordenamiento?"):
+      self.root.destroy()
+
+
+if __name__ == "__main__":
+  ventana = tk.Tk()
+  app = OrdenamientoApp(ventana)
+  ventana.mainloop()
