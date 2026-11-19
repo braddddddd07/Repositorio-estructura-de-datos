@@ -1,0 +1,387 @@
+import random
+import tkinter as tk
+from tkinter import messagebox, simpledialog
+
+class AppBusquedaHash:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Busqueda Hash - Directorio de Empleados")
+        self.root.geometry("960x630")
+        self.root.configure(bg="#F8FAFC")
+
+        self.capacidad = 8
+        self.tabla = [[] for _ in range(self.capacidad)]
+        self.ejecutando = False
+
+        self.catalogo_nombres = [
+            "Ana Lopez", "Carlos Ruiz", "Maria Torres", "Luis Mendez",
+            "Sofia Castro", "Diego Herrera", "Valeria Morales", "Jorge Navarro",
+            "Elena Vargas", "Andres Silva", "Camila Ortega", "Fernando Rios",
+            "Gabriela Paredes", "Mateo Delgado", "Daniela Cruz", "Ricardo Mendoza",
+            "Paula Guzman", "Hector Salazar", "Natalia Romero", "Oscar Fuentes"
+        ]
+
+        self.cargar_datos_iniciales()
+        self.crear_menu()
+        self.crear_widgets()
+        self.dibujar_tabla()
+
+    def cargar_datos_iniciales(self):
+        self.tabla = [[] for _ in range(self.capacidad)]
+        iniciales = [
+            (104, "Ana Lopez"),
+            (215, "Carlos Ruiz"),
+            (320, "Maria Torres"),
+            (407, "Luis Mendez"),
+            (512, "Sofia Castro")
+        ]
+        for clave, nombre in iniciales:
+            indice = clave % self.capacidad
+            self.tabla[indice].append([clave, nombre])
+
+    def crear_menu(self):
+        barra_menu = tk.Menu(self.root)
+        menu_opciones = tk.Menu(barra_menu, tearoff=0)
+        menu_opciones.add_command(label="Buscar empleado por ID", command=self.buscar_desde_menu)
+        menu_opciones.add_command(label="Registrar nuevo empleado", command=self.agregar_desde_menu)
+        menu_opciones.add_command(label="Generar ejercicio aleatorio", command=self.generar_desde_menu)
+        menu_opciones.add_command(label="Restaurar directorio inicial", command=self.reiniciar_datos)
+        menu_opciones.add_separator()
+        menu_opciones.add_command(label="Salir", command=self.root.quit)
+        barra_menu.add_cascade(label="Menu", menu=menu_opciones)
+        self.root.config(menu=barra_menu)
+
+    def crear_widgets(self):
+        titulo = tk.Label(
+            self.root,
+            text="Busqueda Hash (Modulo 8): Directorio de Empleados (ID de 3 Digitos)",
+            font=("Segoe UI", 14, "bold"),
+            bg="#F8FAFC",
+            fg="#0F172A"
+        )
+        titulo.pack(pady=(10, 5))
+
+        frame_controles = tk.Frame(self.root, bg="#F8FAFC")
+        frame_controles.pack(pady=5)
+
+        tk.Label(frame_controles, text="ID (3 digitos):", font=("Segoe UI", 10), bg="#F8FAFC").grid(row=0, column=0, padx=4)
+        self.entry_id = tk.Entry(frame_controles, font=("Segoe UI", 10), width=8)
+        self.entry_id.grid(row=0, column=1, padx=4)
+
+        btn_buscar = tk.Button(
+            frame_controles,
+            text="Buscar Paso a Paso",
+            font=("Segoe UI", 10, "bold"),
+            bg="#2563EB",
+            fg="white",
+            command=self.iniciar_busqueda
+        )
+        btn_buscar.grid(row=0, column=2, padx=4)
+
+        tk.Label(frame_controles, text="Nombre:", font=("Segoe UI", 10), bg="#F8FAFC").grid(row=0, column=3, padx=4)
+        self.entry_nombre = tk.Entry(frame_controles, font=("Segoe UI", 10), width=16)
+        self.entry_nombre.grid(row=0, column=4, padx=4)
+
+        btn_agregar = tk.Button(
+            frame_controles,
+            text="Insertar",
+            font=("Segoe UI", 10),
+            bg="#0D9488",
+            fg="white",
+            command=self.insertar_empleado
+        )
+        btn_agregar.grid(row=0, column=5, padx=4)
+
+        btn_ejercicio = tk.Button(
+            frame_controles,
+            text="Generar Ejercicio",
+            font=("Segoe UI", 10, "bold"),
+            bg="#7C3AED",
+            fg="white",
+            command=lambda: self.generar_ejercicio_aleatorio(7)
+        )
+        btn_ejercicio.grid(row=0, column=6, padx=4)
+
+        btn_limpiar = tk.Button(
+            frame_controles,
+            text="Limpiar Vista",
+            font=("Segoe UI", 10),
+            bg="#64748B",
+            fg="white",
+            command=self.limpiar_vista
+        )
+        btn_limpiar.grid(row=0, column=7, padx=4)
+
+        self.frame_tabla = tk.Frame(self.root, bg="#F8FAFC")
+        self.frame_tabla.pack(fill="x", padx=25, pady=10)
+
+        lbl_log = tk.Label(
+            self.root,
+            text="Registro de funcion hash y resolucion de colisiones:",
+            font=("Segoe UI", 10, "bold"),
+            bg="#F8FAFC",
+            fg="#334155"
+        )
+        lbl_log.pack(anchor="w", padx=25)
+
+        self.log_text = tk.Text(self.root, height=10, font=("Consolas", 10), bg="#0F172A", fg="#E2E8F0", padx=10, pady=8)
+        self.log_text.pack(fill="both", expand=True, padx=25, pady=(4, 12))
+
+    def dibujar_tabla(self, indice_activo=None, pos_nodo=None, estado=None):
+        for widget in self.frame_tabla.winfo_children():
+            widget.destroy()
+
+        for i in range(self.capacidad):
+            fila = tk.Frame(self.frame_tabla, bg="#F8FAFC")
+            fila.pack(fill="x", pady=2)
+
+            color_cubeta = "#FACC15" if i == indice_activo else "#CBD5E1"
+            lbl_cubeta = tk.Label(
+                fila,
+                text=f"Cubeta [{i}]",
+                font=("Segoe UI", 9, "bold"),
+                bg=color_cubeta,
+                fg="#0F172A",
+                width=11,
+                relief="solid",
+                bd=1,
+                pady=4
+            )
+            lbl_cubeta.pack(side="left", padx=(0, 6))
+
+            if not self.tabla[i]:
+                tk.Label(fila, text="(vacia)", font=("Segoe UI", 9, "italic"), bg="#F8FAFC", fg="#94A3B8").pack(side="left")
+            else:
+                for j, (clave, nombre) in enumerate(self.tabla[i]):
+                    color_nodo = "#DBEAFE"
+                    if i == indice_activo and pos_nodo is not None:
+                        if j < pos_nodo:
+                            color_nodo = "#FCA5A5"
+                        elif j == pos_nodo:
+                            if estado == "encontrado":
+                                color_nodo = "#4ADE80"
+                            elif estado == "fallo":
+                                color_nodo = "#FCA5A5"
+                            else:
+                                color_nodo = "#FACC15"
+
+                    tk.Label(fila, text="->", font=("Segoe UI", 9, "bold"), bg="#F8FAFC", fg="#475569").pack(side="left", padx=2)
+                    nodo = tk.Label(
+                        fila,
+                        text=f"ID {clave}: {nombre}",
+                        font=("Segoe UI", 9, "bold"),
+                        bg=color_nodo,
+                        fg="#1E293B",
+                        relief="solid",
+                        bd=1,
+                        padx=8,
+                        pady=3
+                    )
+                    nodo.pack(side="left", padx=2)
+
+    def escribir_log(self, mensaje):
+        self.log_text.insert(tk.END, mensaje + "\n")
+        self.log_text.see(tk.END)
+
+    def limpiar_vista(self):
+        if self.ejecutando:
+            return
+        self.dibujar_tabla()
+        self.log_text.delete("1.0", tk.END)
+
+    def reiniciar_datos(self):
+        if self.ejecutando:
+            return
+        self.cargar_datos_iniciales()
+        self.limpiar_vista()
+        self.escribir_log("Directorio restaurado a los empleados iniciales.")
+
+    def es_id_valido(self, texto):
+        return len(texto) == 3 and texto.isdigit() and not texto.startswith("0")
+
+    def es_nombre_valido(self, texto):
+        limpio = " ".join(texto.split())
+        if len(limpio) < 3:
+            return False
+        for caracter in limpio:
+            if not (caracter.isalpha() or caracter == " "):
+                return False
+        return True
+
+    def generar_ejercicio_aleatorio(self, cantidad=7):
+        if self.ejecutando:
+            return
+        self.tabla = [[] for _ in range(self.capacidad)]
+        nombres_seleccionados = random.sample(self.catalogo_nombres, cantidad)
+
+        ids_generados = random.sample(range(100, 1000), cantidad - 1)
+        cubeta_objetivo = ids_generados[0] % self.capacidad
+        candidatos_colision = [
+            num for num in range(100, 1000)
+            if num % self.capacidad == cubeta_objetivo and num not in ids_generados
+        ]
+        id_colision = random.choice(candidatos_colision)
+        ids_generados.append(id_colision)
+        random.shuffle(ids_generados)
+
+        for clave, nombre in zip(ids_generados, nombres_seleccionados):
+            indice = clave % self.capacidad
+            self.tabla[indice].append([clave, nombre])
+
+        self.dibujar_tabla()
+        self.log_text.delete("1.0", tk.END)
+        self.escribir_log(f"EJERCICIO ALEATORIO GENERADO ({cantidad} empleados con IDs de 3 digitos):")
+        self.escribir_log(f"IDs activos: {sorted(ids_generados)}")
+        self.escribir_log(
+            f"Reto sugerido: Busca el ID {id_colision} para observar la resolucion de colision en la Cubeta [{cubeta_objetivo}], "
+            f"o prueba con un ID de 3 digitos que no este en la lista."
+        )
+
+    def generar_desde_menu(self):
+        if self.ejecutando:
+            return
+        cantidad = simpledialog.askinteger(
+            "Generar Ejercicio Aleatorio",
+            "Cantidad de empleados a generar (5 a 12):",
+            initialvalue=7,
+            minvalue=5,
+            maxvalue=12
+        )
+        if cantidad is not None:
+            self.generar_ejercicio_aleatorio(cantidad)
+
+    def procesar_insercion(self, clave, nombre):
+        for cubeta in self.tabla:
+            for par in cubeta:
+                if par[0] == clave:
+                    messagebox.showwarning("ID duplicado", f"El ID {clave} ya esta asignado a '{par[1]}'.")
+                    self.escribir_log(f"Registro rechazado: el ID {clave} ya pertenece a '{par[1]}'.")
+                    return
+
+        indice = clave % self.capacidad
+        hubo_colision = len(self.tabla[indice]) > 0
+        self.tabla[indice].append([clave, nombre])
+        self.dibujar_tabla(indice_activo=indice)
+        if hubo_colision:
+            self.escribir_log(f"Hash: {clave} % {self.capacidad} = {indice}. Colision resuelta por encadenamiento para '{nombre}'.")
+        else:
+            self.escribir_log(f"Hash: {clave} % {self.capacidad} = {indice}. '{nombre}' insertado directamente en Cubeta [{indice}].")
+
+    def insertar_empleado(self):
+        if self.ejecutando:
+            return
+        texto_id = self.entry_id.get().strip()
+        if not self.es_id_valido(texto_id):
+            messagebox.showwarning(
+                "ID invalido",
+                "El ID debe tener exactamente 3 caracteres numericos positivos (entre 100 y 999)."
+            )
+            return
+
+        texto_nombre = self.entry_nombre.get().strip()
+        if not self.es_nombre_valido(texto_nombre):
+            messagebox.showwarning(
+                "Nombre invalido",
+                "Ingresa un nombre coherente de al menos 3 letras (solo caracteres alfabeticos y espacios)."
+            )
+            return
+
+        nombre_formateado = " ".join(texto_nombre.split()).title()
+        self.entry_id.delete(0, tk.END)
+        self.entry_nombre.delete(0, tk.END)
+        self.procesar_insercion(int(texto_id), nombre_formateado)
+
+    def agregar_desde_menu(self):
+        if self.ejecutando:
+            return
+        texto_id = simpledialog.askstring("Nuevo Empleado", "Ingresa el ID numerico positivo (3 digitos, 100-999):")
+        if texto_id is None:
+            return
+        limpio_id = texto_id.strip()
+        if not self.es_id_valido(limpio_id):
+            messagebox.showwarning(
+                "ID invalido",
+                "El ID debe tener exactamente 3 caracteres numericos positivos (entre 100 y 999)."
+            )
+            return
+
+        texto_nombre = simpledialog.askstring("Nuevo Empleado", "Ingresa el nombre completo del empleado:")
+        if texto_nombre is None:
+            return
+        if not self.es_nombre_valido(texto_nombre):
+            messagebox.showwarning(
+                "Nombre invalido",
+                "Ingresa un nombre coherente de al menos 3 letras (solo caracteres alfabeticos y espacios)."
+            )
+            return
+
+        nombre_formateado = " ".join(texto_nombre.split()).title()
+        self.procesar_insercion(int(limpio_id), nombre_formateado)
+
+    def buscar_desde_menu(self):
+        if self.ejecutando:
+            return
+        texto_id = simpledialog.askstring("Buscar Empleado", "Ingresa el ID de 3 digitos a buscar (100-999):")
+        if texto_id is not None:
+            self.entry_id.delete(0, tk.END)
+            self.entry_id.insert(0, texto_id.strip())
+            self.iniciar_busqueda()
+
+    def iniciar_busqueda(self):
+        if self.ejecutando:
+            return
+        texto_id = self.entry_id.get().strip()
+        if not self.es_id_valido(texto_id):
+            messagebox.showwarning(
+                "ID invalido",
+                "Ingresa un ID valido de exactamente 3 caracteres numericos positivos (entre 100 y 999)."
+            )
+            return
+
+        clave = int(texto_id)
+        self.ejecutando = True
+        self.log_text.delete("1.0", tk.END)
+        self.escribir_log(f"Iniciando busqueda hash para ID: {clave}")
+        self.escribir_log("-" * 68)
+        self.paso_calcular_hash(clave)
+
+    def paso_calcular_hash(self, clave):
+        indice = clave % self.capacidad
+        self.dibujar_tabla(indice_activo=indice)
+        self.escribir_log(f"Paso 1: Aplicando funcion hash -> {clave} % {self.capacidad} = {indice}.")
+        self.escribir_log(f"Paso 2: Saltando directamente a Cubeta [{indice}] (nodos almacenados: {len(self.tabla[indice])}).")
+        self.root.after(900, lambda: self.paso_revisar_cubeta(indice, 0, clave, 3))
+
+    def paso_revisar_cubeta(self, indice, pos, clave, paso):
+        cubeta = self.tabla[indice]
+        if len(cubeta) == 0:
+            self.escribir_log(f"Paso {paso}: La Cubeta [{indice}] esta vacia. El empleado con ID {clave} no existe.")
+            self.ejecutando = False
+            return
+
+        if pos >= len(cubeta):
+            self.escribir_log(f"Paso {paso}: Se revisaron todos los nodos de la Cubeta [{indice}] sin exito.")
+            self.escribir_log(f"RESULTADO: El empleado con ID {clave} no esta registrado.")
+            self.ejecutando = False
+            return
+
+        self.dibujar_tabla(indice_activo=indice, pos_nodo=pos, estado="revisando")
+        id_actual, _ = cubeta[pos]
+        self.escribir_log(f"Paso {paso}: Inspeccionando nodo {pos} de Cubeta [{indice}] (ID {id_actual})...")
+        self.root.after(800, lambda: self.evaluar_nodo(indice, pos, clave, paso))
+
+    def evaluar_nodo(self, indice, pos, clave, paso):
+        id_actual, nombre_actual = self.tabla[indice][pos]
+        if id_actual == clave:
+            self.dibujar_tabla(indice_activo=indice, pos_nodo=pos, estado="encontrado")
+            self.escribir_log(f"   -> EXITO: ID {id_actual} == {clave}. Empleado encontrado: '{nombre_actual}'.")
+            self.ejecutando = False
+        else:
+            self.dibujar_tabla(indice_activo=indice, pos_nodo=pos, estado="fallo")
+            self.escribir_log(f"   -> Colision ({id_actual} != {clave}). Avanzando al siguiente nodo en la lista...")
+            self.root.after(600, lambda: self.paso_revisar_cubeta(indice, pos + 1, clave, paso + 1))
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = AppBusquedaHash(root)
+    root.mainloop()
